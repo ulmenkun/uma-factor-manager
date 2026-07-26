@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
-  <title>ウマ娘 自動因子設計</title>
+  <title>技能試験・自動因子設計</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.0 試作</span>
+    <span class="version">Ver.2.1 試作</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -18,64 +18,28 @@
 
 <main>
   <details class="panel setup-panel" open>
-    <summary>① 育成したいウマ娘・目標を設定</summary>
+    <summary>① 育成ウマ娘・適性・条件</summary>
     <div class="panel-body">
       <label for="targetCharacter">育成ウマ娘</label>
-      <select id="targetCharacter">
-        <option value="jetblack">[Jetblack Automaton] シンボリクリスエス</option>
-        <option value="custom">自由入力</option>
-      </select>
-      <input id="customTargetName" class="hidden" type="text" placeholder="育成ウマ娘名">
+      <select id="targetCharacter"></select>
+      <input id="customTargetName" class="hidden" type="text" list="targetNameSuggestions" placeholder="ウマ娘名を入力">
+      <datalist id="targetNameSuggestions"></datalist>
+      <p class="hint">登録済み候補を選ぶと初期適性が切り替わります。自由入力では初期値をGに戻すので、下で修正してください。</p>
 
       <div class="section-heading">初期適性 → 目標適性</div>
       <div id="aptitudeGrid" class="aptitude-grid"></div>
-      <p class="hint">初期値が違っていたらタップして修正できます。目標はマイルA・追込Aを初期設定しています。</p>
 
-      <div class="compact-settings">
-        <label>レース場
-          <select id="courseSetting">
-            <option value="">指定なし</option>
-            <option value="東京">東京</option>
-            <option value="中山">中山</option>
-            <option value="京都">京都</option>
-            <option value="阪神">阪神</option>
-            <option value="大井">大井</option>
-          </select>
-        </label>
-        <label>回り
-          <select id="turnSetting">
-            <option value="">指定なし</option>
-            <option value="左">左回り</option>
-            <option value="右">右回り</option>
-          </select>
-        </label>
-        <label>季節
-          <select id="seasonSetting">
-            <option value="">指定なし</option>
-            <option value="春">春</option>
-            <option value="夏">夏</option>
-            <option value="秋">秋</option>
-            <option value="冬">冬</option>
-          </select>
-        </label>
-        <label>バ場
-          <select id="groundSetting">
-            <option value="">指定なし</option>
-            <option value="良">良</option>
-            <option value="道悪">道悪</option>
-          </select>
-        </label>
-      </div>
+      <div class="section-heading">複数選択できる緑スキル条件</div>
+      <div id="conditionGroups"></div>
 
       <div class="section-heading row-heading">
         <span>技能試験向け白因子</span>
-        <button id="resetWhiteBtn" class="mini-button" type="button">自動選択に戻す</button>
+        <div class="inline-actions">
+          <button id="openWhitePickerBtn" class="mini-button" type="button">＋選択肢から追加</button>
+          <button id="resetWhiteBtn" class="mini-button ghost" type="button">自動選択に戻す</button>
+        </div>
       </div>
       <div id="whiteFactorList" class="chip-list"></div>
-      <div class="custom-factor-row">
-        <input id="customWhiteInput" type="text" placeholder="白因子を追加">
-        <button id="addWhiteBtn" type="button">追加</button>
-      </div>
     </div>
   </details>
 
@@ -83,7 +47,7 @@
     <div class="plan-head">
       <div>
         <h2>② おすすめ家系図</h2>
-        <p>カードをタップすると他候補・赤因子★を変更できます。</p>
+        <p>カードをタップすると候補・赤因子★・白因子を編集できます。</p>
       </div>
       <button id="autoDesignBtn" class="auto-button" type="button">自動で組み直す</button>
     </div>
@@ -109,42 +73,55 @@
     </div>
 
     <div id="familyTree" class="family-tree"></div>
-
-    <div class="tree-help">上から「育成ウマ娘 → 親 → 祖父母 → 曾祖父母」です。</div>
+    <div class="tree-help">育成ウマ娘 → 親 → 祖父母 → 曾祖父母。各カードをタップして編集します。</div>
   </section>
 
+  <details class="panel schedule-panel">
+    <summary>③ 共通G1ボーナス向け出走スケジュール</summary>
+    <div class="panel-body">
+      <div class="schedule-head">
+        <p class="hint">家系図の7人が走りやすいG1を上に表示します。チェックは出走予定・達成メモとして保存されます。</p>
+        <div class="schedule-count"><span id="raceCheckedCount">0</span> / <span id="raceTotalCount">0</span>戦</div>
+      </div>
+      <div id="raceSchedule"></div>
+    </div>
+  </details>
+
   <details class="panel ownership-panel">
-    <summary>③ 所持ウマ娘で絞り込む</summary>
+    <summary>④ 所持ウマ娘で絞り込む</summary>
     <div class="panel-body">
       <label class="switch-row">
         <input id="onlyOwned" type="checkbox">
         <span>所持ウマ娘だけを候補にする</span>
       </label>
       <div id="ownedList" class="owned-list"></div>
-      <p class="hint">スクリーンショットからの自動判別は、精度の高い画像認識が必要なため、この試作版ではまだ入れていません。</p>
+      <p class="hint">所持一覧画像の自動判別は未実装です。まずは手動登録で確実に絞り込めます。</p>
     </div>
   </details>
 
   <section class="panel backup-panel">
     <h2>保存・バックアップ</h2>
+    <div id="storageInfo" class="storage-info"></div>
     <div class="button-grid">
-      <button id="exportBtn" type="button">書き出す</button>
-      <label class="import-button">読み込む<input id="importFile" type="file" accept=".json,application/json"></label>
+      <button id="shareBackupBtn" type="button">ファイルに保存</button>
+      <label class="import-button">バックアップを読む<input id="importFile" type="file" accept=".json,application/json"></label>
     </div>
+    <button id="downloadBtn" class="secondary-wide" type="button">通常ダウンロードで保存</button>
     <button id="resetAllBtn" class="danger-button" type="button">全データを初期化</button>
+    <p class="hint">iPhoneのSafariではWebページから保存フォルダを直接固定できません。「ファイルに保存」を押し、共有画面の「ファイルに保存」でiCloud Drive／このiPhone内のフォルダを選んでください。</p>
   </section>
 </main>
 
 <div id="candidateSheet" class="sheet hidden" aria-hidden="true">
-  <div class="sheet-backdrop" data-close-sheet></div>
+  <div class="sheet-backdrop" data-close-candidate></div>
   <section class="sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
       <div>
         <small id="sheetRole"></small>
-        <h2 id="sheetTitle">候補選択</h2>
+        <h2 id="sheetTitle">候補と因子</h2>
       </div>
-      <button class="close-button" type="button" data-close-sheet>閉じる</button>
+      <button class="close-button" type="button" data-close-candidate>閉じる</button>
     </div>
 
     <div class="sheet-stars">
@@ -152,7 +129,29 @@
       <div id="sheetStarButtons" class="star-buttons"></div>
     </div>
 
+    <div class="sheet-section-title">おすすめ候補</div>
     <div id="candidateList" class="candidate-list"></div>
+
+    <div class="sheet-section-title">この個体に覚えさせたい白スキル</div>
+    <p class="sheet-note">「習得」をチェックし、育成終了後に白因子が付いたら★を入力します。％は次世代への簡易推定です。</p>
+    <div id="nodeWhiteSkills" class="node-white-list"></div>
+  </section>
+</div>
+
+<div id="whitePickerSheet" class="sheet hidden" aria-hidden="true">
+  <div class="sheet-backdrop" data-close-white></div>
+  <section class="sheet-card white-sheet-card">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <small>実在スキル一覧</small>
+        <h2>白因子を選択</h2>
+      </div>
+      <button class="close-button" type="button" data-close-white>閉じる</button>
+    </div>
+    <input id="whiteSearch" class="search-input" type="search" placeholder="スキル名・カテゴリで検索">
+    <p class="sheet-note">未入力でも、技能試験で使いやすい低コスト候補を上から表示します。</p>
+    <div id="whitePickerList" class="white-picker-list"></div>
   </section>
 </div>
 
