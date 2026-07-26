@@ -56,13 +56,57 @@ function stars(key){
       '" data-star-key="'+esc(key)+'" data-star-value="'+i+'">'+label+'</button>';
   }).join("")+"</div>";
 }
-function person(person,cls,factor,extra){
-  return '<article class="person '+cls+'">'+
-    '<div class="person-head"><div><h3>'+esc(person.name)+'</h3><small>'+esc(factor)+'赤因子</small></div>'+
+function person(person,cls,factor,extra,anchorId,note){
+  return '<article id="'+(anchorId||'')+'" class="person '+cls+' edit-anchor">'+
+    '<div class="person-head"><div><h3>'+esc(person.name)+'</h3><small>'+esc(factor)+'赤因子</small>'+(note?'<div class="person-note">'+note+'</div>':'')+'</div>'+
     '<label class="check"><input type="checkbox" data-key="'+person.id+'.done"><span>完成</span></label></div>'+
     stars(person.id+".stars")+(extra||"")+
     '<label>メモ</label><input type="text" data-key="'+person.id+'.note" placeholder="白因子・妥協点など">'+
     '</article>';
+}
+function fixedName(id){
+  for(var i=0;i<cfg.branches.length;i++){
+    var b=cfg.branches[i];
+    if(b.parent.id===id)return b.parent.name;
+    for(var j=0;j<b.grandparents.length;j++){
+      var gp=b.grandparents[j];
+      if(gp.id===id)return gp.name;
+      for(var k=0;k<gp.ancestors.length;k++){
+        var a=gp.ancestors[k];
+        if(a.id===id)return selectedName(a)||"未選択";
+      }
+    }
+  }
+  return "";
+}
+function starText(id){return Number(get(id+".stars",0))+"★"}
+function doneText(id){return get(id+".done",false)?"完成":"未完"}
+function gpSubtotal(gp){
+  var sub=Number(get(gp.id+".stars",0));
+  gp.ancestors.forEach(function(a){sub+=Number(get(a.id+".stars",0))});
+  return sub;
+}
+function pedigreeNode(id,kind,label,name,sub,href){
+  var pending=(kind==="ancestor"&&!name)||(name==="未選択");
+  return '<a id="ped-node-'+id+'" href="#'+href+'" class="ped-node '+kind+(get(id+".done",false)?' done':'')+(pending?' pending':'')+'">'+
+    '<span class="ped-role">'+esc(label)+'</span>'+
+    '<span id="ped-name-'+id+'" class="ped-name '+(pending?'placeholder':'')+'">'+esc(name||"未選択")+'</span>'+
+    '<div class="ped-meta"><span id="ped-star-'+id+'" class="ped-star">'+starText(id)+'</span>'+
+    '<span id="ped-sub-'+id+'" class="ped-sub'+(get(id+".done",false)?' ok':'')+'">'+esc(sub)+'</span></div>'+
+  '</a>';
+}
+function pedigreeColumn(gp){
+  return '<div class="ped-col">'+
+    pedigreeNode(gp.id,'grandparent','祖父母',gp.name,gpSubtotal(gp)+'★小計','edit-'+gp.id)+
+    '<div class="ped-ancestor-grid">'+gp.ancestors.map(function(a){
+      return '<div class="ped-node-wrap">'+pedigreeNode(a.id,'ancestor',a.label,selectedName(a)||'未選択',doneText(a.id),'edit-'+a.id)+'</div>';
+    }).join('')+'</div></div>';
+}
+function pedigree(b){
+  return '<div class="pedigree">'+
+    '<div class="pedigree-parent-row">'+pedigreeNode(b.parent.id,'parent','親',b.parent.name,get(b.parent.id+'.gene',false)?'遺伝子OK':'遺伝子未','edit-'+b.parent.id)+'</div>'+
+    '<div class="pedigree-grand-grid">'+pedigreeColumn(b.grandparents[0])+pedigreeColumn(b.grandparents[1])+'</div>'+
+  '</div>';
 }
 function candidateOption(name,selected,prefix){
   return '<option value="'+esc(name)+'" '+(selected===name?"selected":"")+'>'+
@@ -126,7 +170,7 @@ function ancestor(a,factor,branchId){
     dirtOnly.map(function(name){return candidateOption(name,sel,"ダート：")}).join("")+'</optgroup>'+
     '<option value="__custom__" '+(sel==="__custom__"?"selected":"")+'>候補にないキャラを入力</option>';
 
-  return '<article class="ancestor">'+
+  return '<article id="edit-'+a.id+'" class="ancestor edit-anchor">'+
     '<div class="ancestor-title">'+esc(a.label)+'</div>'+
     '<select data-key="'+a.id+'.name" data-custom="'+a.id+'Custom" data-candidate-id="'+a.id+'">'+options+'</select>'+
     '<input id="'+a.id+'Custom" class="custom-input '+(sel==="__custom__"?"show":"")+
@@ -140,7 +184,8 @@ function branch(b){
   var gps=b.grandparents.map(function(gp){
     var an=gp.ancestors.map(function(a){return ancestor(a,b.factor,b.id)}).join("");
     return person(gp,"grandparent",b.factor,
-      '<div class="ancestors">'+an+'</div><div id="'+gp.id+'Subtotal" class="subtotal"></div>');
+      '<div class="ancestors">'+an+'</div><div id="'+gp.id+'Subtotal" class="subtotal"></div>',
+      'edit-'+gp.id,'下の2人がこの祖父母の親です');
   }).join("");
   var extra='<label class="check"><input type="checkbox" data-key="'+b.parent.id+'.gene"><span>「'+esc(b.factor)+'の遺伝子」取得済み</span></label>';
   return '<section id="branch-'+b.id+'" class="card branch-section">'+
@@ -148,7 +193,10 @@ function branch(b){
     '<div class="branch-head"><div><h2>'+esc(b.title)+'</h2>'+
     '<small>'+esc(b.parent.name)+'に'+esc(b.factor)+'の遺伝子を付ける</small></div>'+
     '<span id="'+b.id+'Badge" class="badge">0 / '+cfg.threshold+'★</span></div>'+
-    person(b.parent,"parent",b.factor,extra)+gps+'</section>';
+    '<div class="branch-toolbar"><a href="#edit-'+b.parent.id+'">親を編集</a><a href="#edit-'+b.grandparents[0].id+'">左の祖父母</a><a href="#edit-'+b.grandparents[1].id+'">右の祖父母</a></div>'+
+    pedigree(b)+
+    '<div class="editor-title">▼ 編集欄</div>'+
+    person(b.parent,"parent",b.factor,extra,'edit-'+b.parent.id,'この親の赤因子★と遺伝子取得状況を入力')+gps+'</section>';
 }
 function render(){
   document.getElementById("branches").innerHTML=cfg.branches.map(branch).join("");
@@ -292,6 +340,35 @@ function updateDashboard(){
       gp.ancestors.forEach(function(a){sub+=Number(get(a.id+".stars",0))});
       var el=document.getElementById(gp.id+"Subtotal");
       if(el)el.innerHTML=gp.name+"＋親2人の小計：<strong>"+sub+"★</strong>";
+    });
+  });
+  updatePedigreeSummary();
+}
+function updatePedigreeSummary(){
+  cfg.branches.forEach(function(b){
+    var parentSub=document.getElementById('ped-sub-'+b.parent.id);
+    var parentStar=document.getElementById('ped-star-'+b.parent.id);
+    var parentNode=document.getElementById('ped-node-'+b.parent.id);
+    if(parentSub)parentSub.textContent=get(b.parent.id+'.gene',false)?'遺伝子OK':'遺伝子未';
+    if(parentStar)parentStar.textContent=starText(b.parent.id);
+    if(parentNode){
+      parentNode.classList.toggle('done',!!get(b.parent.id+'.done',false));
+      var ps=parentSub; if(ps) ps.classList.toggle('ok',!!get(b.parent.id+'.gene',false));
+      if(ps) ps.classList.toggle('note',!get(b.parent.id+'.gene',false));
+    }
+    b.grandparents.forEach(function(gp){
+      var gpStar=document.getElementById('ped-star-'+gp.id), gpSub=document.getElementById('ped-sub-'+gp.id), gpNode=document.getElementById('ped-node-'+gp.id);
+      if(gpStar)gpStar.textContent=starText(gp.id);
+      if(gpSub){gpSub.textContent=gpSubtotal(gp)+'★小計';gpSub.classList.add('note');}
+      if(gpNode)gpNode.classList.toggle('done',!!get(gp.id+'.done',false));
+      gp.ancestors.forEach(function(a){
+        var name=selectedName(a)||'未選択';
+        var n=document.getElementById('ped-name-'+a.id), s=document.getElementById('ped-star-'+a.id), sub=document.getElementById('ped-sub-'+a.id), node=document.getElementById('ped-node-'+a.id);
+        if(n){n.textContent=name;n.classList.toggle('placeholder',name==='未選択');}
+        if(s)s.textContent=starText(a.id);
+        if(sub){sub.textContent=doneText(a.id);sub.classList.toggle('ok',!!get(a.id+'.done',false));}
+        if(node){node.classList.toggle('done',!!get(a.id+'.done',false));node.classList.toggle('pending',name==='未選択');}
+      });
     });
   });
 }
