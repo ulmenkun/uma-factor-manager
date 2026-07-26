@@ -8,22 +8,83 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>技能試験クリスエス<br>因子マネージャー</h1>
-  <p>曾祖父母候補を選んで保存するシンプル版</p>
-</header>
-<main>
-  <section class="card"><h2>マイル側</h2><div id="mile-slots"></div></section>
-  <section class="card"><h2>追込側</h2><div id="chase-slots"></div></section>
-  <section class="card"><h2>自由メモ</h2><textarea id="memo" rows="4" placeholder="衣装違い、代替候補、白因子のメモなど"></textarea></section>
-  <button id="save-button" class="primary">保存する</button>
-  <p id="save-message" aria-live="polite"></p>
-  <section class="card">
-    <div class="title-row"><h2>保存中の家系図</h2><button id="reset-button" class="sub">初期化</button></div>
-    <div id="summary" class="summary">まだ保存されていません。</div>
-  </section>
-</main>
-<script src="data.js"></script>
-<script src="app.js"></script>
+  <header class="hero">
+    <div>
+      <span class="version">Ver.1.2</span>
+      <h1>技能試験クリスエス<br>因子マネージャー</h1>
+      <p>家系図・赤因子★・G1広域候補をまとめて管理</p>
+    </div>
+    <span id="saveState" class="save-state">自動保存</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>現在の状況</h2>
+      <div class="status-grid">
+        <div class="status">
+          <span>ライン作成時<br>マイル赤</span>
+          <strong id="mileGeneTotal">0★</strong>
+          <em id="mileGeneStatus">あと12★</em>
+        </div>
+        <div class="status">
+          <span>ステゴ作成時<br>追込赤</span>
+          <strong id="chaseGeneTotal">0★</strong>
+          <em id="chaseGeneStatus">あと12★</em>
+        </div>
+        <div class="status">
+          <span>最終開始時<br>マイル</span>
+          <strong id="finalMileTotal">0★</strong>
+          <em id="finalMileRank">E</em>
+        </div>
+        <div class="status">
+          <span>最終開始時<br>追込</span>
+          <strong id="finalChaseTotal">0★</strong>
+          <em id="finalChaseRank">D</em>
+        </div>
+      </div>
+      <div class="next-box">
+        <small>次にやること</small>
+        <b id="nextTask">曾祖父母候補を選んでください。</b>
+      </div>
+      <p class="note">遺伝子判定は、親2人＋祖父母4人の対象赤因子が合計12★以上という今回の設計条件で表示します。</p>
+    </section>
+
+    <section class="card guide-card">
+      <h2>候補の見方</h2>
+      <div class="legend">
+        <span>🤝 相性優先</span>
+        <span>🏆 マ中長G1</span>
+        <span>🟫 ダートG1</span>
+        <span>🌙 追込A</span>
+      </div>
+      <p class="note">各プルダウンは「相性優先」「G1広域」「ダート対応」に分けています。選ぶと初期適性の目安と採用理由が表示されます。</p>
+    </section>
+    <div id="branches"></div>
+
+    <section class="card">
+      <h2>最終育成</h2>
+      <label class="check">
+        <input id="finalDone" type="checkbox">
+        <span>新衣装シンボリクリスエスの本育成が完了</span>
+      </label>
+      <label for="finalNote">メモ</label>
+      <textarea id="finalNote" rows="4" placeholder="評価点、取得スキル、妥協点など"></textarea>
+    </section>
+
+    <section class="card">
+      <h2>バックアップ</h2>
+      <div class="buttons">
+        <button id="exportBtn">データを書き出す</button>
+        <label class="import-btn">
+          データを読み込む
+          <input id="importFile" type="file" accept=".json,application/json">
+        </label>
+      </div>
+      <button id="resetBtn" class="danger">全データを初期化</button>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
