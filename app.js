@@ -1,401 +1,343 @@
 (function(){
 "use strict";
-var KEY="kris-factor-manager-v1-1";
-var cfg=window.FACTOR_DATA;
+var cfg=window.AUTO_FACTOR_DATA;
+var KEY="uma-auto-factor-v2";
+var oldKey="kris-factor-manager-v1-1";
 var state=load();
+var activeBranch=state.activeBranch||"mile";
+var activeSlot=null;
 
+function defaultState(){
+  return {
+    activeBranch:"mile",
+    target:"jetblack",
+    customTarget:"",
+    initial:Object.assign({},cfg.target.initial),
+    desired:Object.assign({},cfg.target.desired),
+    course:"",turn:"",season:"",ground:"",
+    customWhites:[],
+    whiteOverrides:{},
+    onlyOwned:false,
+    owned:{},
+    branches:{mile:{selection:{},stars:{}},chase:{selection:{},stars:{}}}
+  };
+}
 function load(){
   try{
     var raw=localStorage.getItem(KEY);
-    if(raw){
-      var obj=JSON.parse(raw);
-      return obj&&obj.values?obj:{values:{}};
-    }
-
-    /* Ver.1の選択内容があれば、曾祖父母名とメモだけ自動移行 */
-    var oldRaw=localStorage.getItem("kris-factor-manager-v1");
+    if(raw)return Object.assign(defaultState(),JSON.parse(raw));
+    var fresh=defaultState();
+    var oldRaw=localStorage.getItem(oldKey);
     if(oldRaw){
-      var oldData=JSON.parse(oldRaw);
-      var migrated={values:{}};
-      if(oldData&&oldData.selections){
-        Object.keys(oldData.selections).forEach(function(id){
-          migrated.values[id+".name"]=oldData.selections[id]||"";
+      var old=JSON.parse(oldRaw);
+      if(old&&old.values){
+        var mapM={parent:"line",gp1:"daiwa",gp2:"gentil",a1:"daiwa1",a2:"daiwa2",a3:"gentil1",a4:"gentil2"};
+        var mapC={parent:"stay",gp1:"eishin",gp2:"crown",a1:"eishin1",a2:"eishin2",a3:"crown1",a4:"crown2"};
+        [["mile",mapM],["chase",mapC]].forEach(function(pair){
+          Object.keys(pair[1]).forEach(function(slot){
+            var oldId=pair[1][slot];
+            var name=old.values[oldId+".name"];
+            if(name&&name!=="__custom__")fresh.branches[pair[0]].selection[slot]=name;
+            fresh.branches[pair[0]].stars[slot]=Number(old.values[oldId+".stars"]||0);
+          });
         });
       }
-      if(oldData&&oldData.memo){
-        migrated.values["final.note"]=oldData.memo;
-      }
-      localStorage.setItem(KEY,JSON.stringify(migrated));
-      return migrated;
     }
-    return {values:{}};
-  }catch(e){return {values:{}}}
+    return fresh;
+  }catch(e){return defaultState()}
 }
-function get(k,d){return state.values[k]===undefined?d:state.values[k]}
-function set(k,v){
-  state.values[k]=v;
+function save(){
+  state.activeBranch=activeBranch;
   localStorage.setItem(KEY,JSON.stringify(state));
-  flash();
-  updateDashboard();
+  var el=document.getElementById("saveState");
+  el.textContent="保存済み";
+  clearTimeout(save.timer);
+  save.timer=setTimeout(function(){el.textContent="自動保存"},900);
 }
-function flash(){
-  var e=document.getElementById("saveState");
-  e.textContent="保存済み";
-  clearTimeout(flash.t);
-  flash.t=setTimeout(function(){e.textContent="自動保存"},900);
+function gradeValue(g){return cfg.ranks.indexOf(g)}
+function aptitudeUp(stars){
+  return stars>=10?4:stars>=7?3:stars>=4?2:stars>=1?1:0;
 }
-function esc(s){
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+function resultingRank(base,stars){
+  return cfg.ranks[Math.min(gradeValue(base)+aptitudeUp(stars),cfg.ranks.length-1)];
 }
-function stars(key){
-  var n=Number(get(key,0));
-  var labels=["0","★","★★","★★★"];
-  return '<div class="star-row">'+labels.map(function(label,i){
-    return '<button type="button" class="star-btn '+(n===i?"active":"")+
-      '" data-star-key="'+esc(key)+'" data-star-value="'+i+'">'+label+'</button>';
-  }).join("")+"</div>";
+function targetName(){
+  return state.target==="custom"?(state.customTarget||"自由入力ウマ娘"):cfg.target.name;
 }
-function person(person,cls,factor,extra,anchorId,note){
-  return '<article id="'+(anchorId||'')+'" class="person '+cls+' edit-anchor">'+
-    '<div class="person-head"><div><h3>'+esc(person.name)+'</h3><small>'+esc(factor)+'赤因子</small>'+(note?'<div class="person-note">'+note+'</div>':'')+'</div>'+
-    '<label class="check"><input type="checkbox" data-key="'+person.id+'.done"><span>完成</span></label></div>'+
-    stars(person.id+".stars")+(extra||"")+
-    '<label>メモ</label><input type="text" data-key="'+person.id+'.note" placeholder="白因子・妥協点など">'+
-    '</article>';
+function selected(branch,slot){return state.branches[branch].selection[slot]||""}
+function star(branch,slot){return Number(state.branches[branch].stars[slot]||0)}
+function allSelected(branch,except){
+  return Object.keys(state.branches[branch].selection).filter(function(k){return k!==except})
+    .map(function(k){return state.branches[branch].selection[k]}).filter(Boolean);
 }
-function fixedName(id){
-  for(var i=0;i<cfg.branches.length;i++){
-    var b=cfg.branches[i];
-    if(b.parent.id===id)return b.parent.name;
-    for(var j=0;j<b.grandparents.length;j++){
-      var gp=b.grandparents[j];
-      if(gp.id===id)return gp.name;
-      for(var k=0;k<gp.ancestors.length;k++){
-        var a=gp.ancestors[k];
-        if(a.id===id)return selectedName(a)||"未選択";
-      }
+function coverageScore(char){
+  var c=cfg.characters[char];
+  if(!c)return 0;
+  var s=0;
+  ["mile","middle","long"].forEach(function(k){
+    var v=gradeValue(c[k]);
+    if(v>=gradeValue("A"))s+=8;
+    else if(v>=gradeValue("B"))s+=6;
+    else if(v>=gradeValue("C"))s+=3;
+  });
+  if(gradeValue(c.dirt)>=gradeValue("B"))s+=8;
+  return s;
+}
+function scoreCandidate(branch,slot,name){
+  var def=cfg.slots[branch].nodes[slot];
+  var c=cfg.characters[name];
+  if(!c)return -999;
+  if(state.onlyOwned&&!state.owned[name])return -999;
+  var idx=def.prefs.indexOf(name);
+  var score=idx>=0?100-idx*9:45;
+  score+=coverageScore(name);
+  if(branch==="chase"&&gradeValue(c.chase)>=gradeValue("A"))score+=16;
+  if(branch==="mile"&&gradeValue(c.mile)>=gradeValue("A"))score+=12;
+  if(state.owned[name])score+=8;
+  if(allSelected(branch,slot).indexOf(name)>=0)score-=45;
+  return score;
+}
+function candidates(branch,slot){
+  return Object.keys(cfg.characters).map(function(name){
+    return {name:name,score:scoreCandidate(branch,slot,name)};
+  }).filter(function(x){return x.score>-900}).sort(function(a,b){return b.score-a.score});
+}
+function bestCandidate(branch,slot){
+  var list=candidates(branch,slot);
+  return list.length?list[0].name:"";
+}
+function rebuildBranch(branch,startSlot){
+  var order=["parent","gp1","gp2","a1","a2","a3","a4"];
+  var start=Math.max(0,order.indexOf(startSlot||"parent"));
+  for(var i=start;i<order.length;i++){
+    var slot=order[i];
+    state.branches[branch].selection[slot]=bestCandidate(branch,slot);
+    if(state.branches[branch].stars[slot]===undefined){
+      state.branches[branch].stars[slot]=slot==="parent"?2:2;
     }
   }
-  return "";
+  save();
 }
-function starText(id){return Number(get(id+".stars",0))+"★"}
-function doneText(id){return get(id+".done",false)?"完成":"未完"}
-function gpSubtotal(gp){
-  var sub=Number(get(gp.id+".stars",0));
-  gp.ancestors.forEach(function(a){sub+=Number(get(a.id+".stars",0))});
-  return sub;
-}
-function pedigreeNode(id,kind,label,name,sub,href){
-  var pending=(kind==="ancestor"&&!name)||(name==="未選択");
-  return '<a id="ped-node-'+id+'" href="#'+href+'" class="ped-node '+kind+(get(id+".done",false)?' done':'')+(pending?' pending':'')+'">'+
-    '<span class="ped-role">'+esc(label)+'</span>'+
-    '<span id="ped-name-'+id+'" class="ped-name '+(pending?'placeholder':'')+'">'+esc(name||"未選択")+'</span>'+
-    '<div class="ped-meta"><span id="ped-star-'+id+'" class="ped-star">'+starText(id)+'</span>'+
-    '<span id="ped-sub-'+id+'" class="ped-sub'+(get(id+".done",false)?' ok':'')+'">'+esc(sub)+'</span></div>'+
-  '</a>';
-}
-function pedigreeColumn(gp){
-  return '<div class="ped-col">'+
-    pedigreeNode(gp.id,'grandparent','祖父母',gp.name,gpSubtotal(gp)+'★小計','edit-'+gp.id)+
-    '<div class="ped-ancestor-grid">'+gp.ancestors.map(function(a){
-      return '<div class="ped-node-wrap">'+pedigreeNode(a.id,'ancestor',a.label,selectedName(a)||'未選択',doneText(a.id),'edit-'+a.id)+'</div>';
-    }).join('')+'</div></div>';
-}
-function pedigree(b){
-  return '<div class="pedigree">'+
-    '<div class="pedigree-parent-row">'+pedigreeNode(b.parent.id,'parent','親',b.parent.name,get(b.parent.id+'.gene',false)?'遺伝子OK':'遺伝子未','edit-'+b.parent.id)+'</div>'+
-    '<div class="pedigree-grand-grid">'+pedigreeColumn(b.grandparents[0])+pedigreeColumn(b.grandparents[1])+'</div>'+
-  '</div>';
-}
-function candidateOption(name,selected,prefix){
-  return '<option value="'+esc(name)+'" '+(selected===name?"selected":"")+'>'+
-    (prefix||"")+esc(name)+'</option>';
-}
-function uniqueNames(list){
-  var seen={};
-  return list.filter(function(name){
-    if(seen[name])return false;
-    seen[name]=true;
-    return true;
+function ensureDesign(){
+  ["mile","chase"].forEach(function(branch){
+    var sel=state.branches[branch].selection;
+    if(!sel.parent)rebuildBranch(branch,"parent");
   });
 }
-function candidateTags(info){
-  if(!info||!info.tags)return "";
-  return info.tags.map(function(tag){
-    var cls=tag.indexOf("ダート")>=0?" dirt":
-      tag.indexOf("追込")>=0?" chase":
-      tag.indexOf("相性")>=0?" compat":" wide";
-    return '<span class="candidate-tag'+cls+'">'+esc(tag)+'</span>';
-  }).join("");
-}
-function candidateInfoHtml(a){
-  var selected=get(a.id+".name","");
-  if(!selected){
-    return '<div id="'+a.id+'Info" class="candidate-info empty">候補を選ぶと、G1範囲と採用理由を表示します。</div>';
+function whiteDefaults(){
+  var list=["コーナー巧者○","直線巧者","尻尾上がり","ウマ好み","垂れウマ回避"];
+  if(state.desired["マイル"]==="A"){
+    list.push("マイル直線○","マイルコーナー○");
   }
-  if(selected==="__custom__"){
-    return '<div id="'+a.id+'Info" class="candidate-info"><div class="candidate-name">'+
-      esc(get(a.id+".custom","")||"自由入力")+'</div><div class="candidate-reason">自由入力候補です。実際の適性と相性を確認してください。</div></div>';
+  if(state.desired["追込"]==="A"){
+    list.push("追込直線○","追込コーナー○");
   }
-  var info=cfg.candidateCatalog[selected]||{};
-  var rank=a.preferred.indexOf(selected);
-  var rankText=rank===0?"この枠の最優先":rank===1?"この枠のおすすめ2位":rank===2?"この枠のおすすめ3位":rank>=0?"相性候補":"G1拡張候補";
-  return '<div id="'+a.id+'Info" class="candidate-info">'+
-    '<div class="candidate-name">'+esc(selected)+' <span class="candidate-tag compat">'+esc(rankText)+'</span></div>'+
-    '<div class="candidate-tags">'+candidateTags(info)+'</div>'+
-    '<div class="candidate-aptitude">'+esc(info.aptitude||"適性情報は要確認")+'</div>'+
-    '<div class="candidate-reason">'+esc(info.reason||"候補として追加済みです。")+'</div></div>';
+  if(state.course)list.push(state.course+"レース場○");
+  if(state.turn)list.push(state.turn+"回り○");
+  if(state.season)list.push(state.season+"ウマ娘○");
+  if(state.ground==="良")list.push("良バ場○");
+  if(state.ground==="道悪")list.push("道悪○");
+  return list.concat(state.customWhites).filter(function(x,i,a){return a.indexOf(x)===i});
 }
-function ancestor(a,factor,branchId){
-  var sel=get(a.id+".name","");
-  var custom=get(a.id+".custom","");
-  var broad=cfg.broad[branchId]||[];
-  var dirt=cfg.broad.dirt||[];
-  var preferred=uniqueNames(a.preferred);
-  var wide=uniqueNames(broad.filter(function(name){return preferred.indexOf(name)<0}));
-  var dirtOnly=uniqueNames(dirt.filter(function(name){
-    return preferred.indexOf(name)<0&&wide.indexOf(name)<0;
-  }));
-
-  var options='<option value="">未選択</option>'+
-    '<optgroup label="🤝 相性優先">'+
-    preferred.map(function(name,i){
-      var p=i===0?"最優先：":i===1?"おすすめ2：":i===2?"おすすめ3：":"";
-      return candidateOption(name,sel,p);
-    }).join("")+'</optgroup>'+
-    '<optgroup label="🏆 マイル・中距離・長距離G1を広く">'+
-    wide.map(function(name){return candidateOption(name,sel,"G1広域：")}).join("")+'</optgroup>'+
-    '<optgroup label="🟫 ダートG1も狙う">'+
-    dirtOnly.map(function(name){return candidateOption(name,sel,"ダート：")}).join("")+'</optgroup>'+
-    '<option value="__custom__" '+(sel==="__custom__"?"selected":"")+'>候補にないキャラを入力</option>';
-
-  return '<article id="edit-'+a.id+'" class="ancestor edit-anchor">'+
-    '<div class="ancestor-title">'+esc(a.label)+'</div>'+
-    '<select data-key="'+a.id+'.name" data-custom="'+a.id+'Custom" data-candidate-id="'+a.id+'">'+options+'</select>'+
-    '<input id="'+a.id+'Custom" class="custom-input '+(sel==="__custom__"?"show":"")+
-      '" type="text" data-key="'+a.id+'.custom" value="'+esc(custom)+'" placeholder="キャラ名を入力">'+
-    candidateInfoHtml(a)+
-    '<label>'+esc(factor)+'赤因子</label>'+stars(a.id+".stars")+
-    '<label class="check"><input type="checkbox" data-key="'+a.id+'.done"><span>土台完成</span></label>'+
-    '</article>';
+function whiteEnabled(name){
+  return state.whiteOverrides[name]===undefined?true:!!state.whiteOverrides[name];
 }
-function branch(b){
-  var gps=b.grandparents.map(function(gp){
-    var an=gp.ancestors.map(function(a){return ancestor(a,b.factor,b.id)}).join("");
-    return person(gp,"grandparent",b.factor,
-      '<div class="ancestors">'+an+'</div><div id="'+gp.id+'Subtotal" class="subtotal"></div>',
-      'edit-'+gp.id,'下の2人がこの祖父母の親です');
-  }).join("");
-  var extra='<label class="check"><input type="checkbox" data-key="'+b.parent.id+'.gene"><span>「'+esc(b.factor)+'の遺伝子」取得済み</span></label>';
-  return '<section id="branch-'+b.id+'" class="card branch-section">'+
-    '<div class="tree-label">🌳 家系図</div>'+
-    '<div class="branch-head"><div><h2>'+esc(b.title)+'</h2>'+
-    '<small>'+esc(b.parent.name)+'に'+esc(b.factor)+'の遺伝子を付ける</small></div>'+
-    '<span id="'+b.id+'Badge" class="badge">0 / '+cfg.threshold+'★</span></div>'+
-    '<div class="branch-toolbar"><a href="#edit-'+b.parent.id+'">親を編集</a><a href="#edit-'+b.grandparents[0].id+'">左の祖父母</a><a href="#edit-'+b.grandparents[1].id+'">右の祖父母</a></div>'+
-    pedigree(b)+
-    '<div class="editor-title">▼ 編集欄</div>'+
-    person(b.parent,"parent",b.factor,extra,'edit-'+b.parent.id,'この親の赤因子★と遺伝子取得状況を入力')+gps+'</section>';
-}
-function render(){
-  document.getElementById("branches").innerHTML=cfg.branches.map(branch).join("");
-  bind();
-  document.getElementById("finalDone").checked=!!get("final.done",false);
-  document.getElementById("finalNote").value=get("final.note","");
-  toggleCustom();
-  updateDashboard();
-}
-function bind(){
-  document.querySelectorAll("[data-key]").forEach(function(el){
-    var key=el.getAttribute("data-key");
-    if(el.type==="checkbox"){
-      el.checked=!!get(key,false);
-      el.addEventListener("change",function(){set(key,el.checked)});
-    }else{
-      if(el.tagName!=="SELECT")el.value=get(key,"");
-      el.addEventListener("change",function(){
-        set(key,el.value);
-        toggleCustom();
-        if(el.hasAttribute("data-candidate-id"))refreshCandidateInfo(el.getAttribute("data-candidate-id"));
-      });
-      if(el.type==="text")el.addEventListener("input",function(){
-        set(key,el.value);
-        if(key.indexOf(".custom")>0)refreshCandidateInfo(key.split(".")[0]);
-      });
+function renderAptitudes(){
+  var keys=["芝","ダート","短距離","マイル","中距離","長距離","逃げ","先行","差し","追込"];
+  var html=keys.map(function(k){
+    function options(value){
+      return cfg.ranks.map(function(r){return '<option '+(value===r?"selected":"")+'>'+r+'</option>'}).join("");
     }
+    return '<div class="aptitude-row"><b>'+k+'</b>'+
+      '<select data-aptitude="initial" data-key="'+k+'">'+options(state.initial[k])+'</select>'+
+      '<span>→</span>'+
+      '<select data-aptitude="desired" data-key="'+k+'">'+options(state.desired[k])+'</select></div>';
+  }).join("");
+  document.getElementById("aptitudeGrid").innerHTML=html;
+  document.querySelectorAll("[data-aptitude]").forEach(function(el){
+    el.addEventListener("change",function(){
+      state[el.dataset.aptitude][el.dataset.key]=el.value;
+      save();renderWhites();renderTree();
+    });
   });
-  document.querySelectorAll("[data-star-key]").forEach(function(btn){
+}
+function renderWhites(){
+  var list=whiteDefaults();
+  document.getElementById("whiteFactorList").innerHTML=list.map(function(name){
+    return '<label class="factor-chip"><input type="checkbox" data-white="'+name+'" '+(whiteEnabled(name)?"checked":"")+'><span>'+name+'</span></label>';
+  }).join("");
+  document.querySelectorAll("[data-white]").forEach(function(el){
+    el.addEventListener("change",function(){
+      state.whiteOverrides[el.dataset.white]=el.checked;
+      save();
+    });
+  });
+}
+function nodeHtml(branch,slot,kind){
+  var name=selected(branch,slot)||"未選択";
+  var score=name?scoreCandidate(branch,slot,name):0;
+  var role=cfg.slots[branch].nodes[slot].role;
+  var done=star(branch,slot)>0;
+  return '<button type="button" class="tree-node '+kind+(done?" done":"")+'" data-slot="'+slot+'">'+
+    '<span class="node-role">'+role+'</span>'+
+    '<span class="node-name">'+name+'</span>'+
+    '<span class="node-meta"><span class="node-star">'+star(branch,slot)+'★</span>'+
+    '<span class="node-score '+(score>=100?"best":"")+'">推奨'+Math.max(0,score)+'</span></span></button>';
+}
+function branchTotal(branch){
+  return ["gp1","gp2","a1","a2","a3","a4"].reduce(function(t,s){return t+star(branch,s)},0);
+}
+function finalStars(branch){
+  return ["parent","gp1","gp2"].reduce(function(t,s){return t+star(branch,s)},0);
+}
+function renderTree(){
+  var branch=activeBranch;
+  var target='<div class="tree-target"><div class="tree-node target"><span class="node-role">育成ウマ娘</span><span class="node-name">'+targetName()+'</span></div></div>';
+  var html=target+
+    '<div class="tree-level parent">'+nodeHtml(branch,"parent","parent")+'</div>'+
+    '<div class="tree-level grandparents">'+nodeHtml(branch,"gp1","grandparent")+nodeHtml(branch,"gp2","grandparent")+'</div>'+
+    '<div class="tree-level ancestors">'+nodeHtml(branch,"a1","ancestor")+nodeHtml(branch,"a2","ancestor")+nodeHtml(branch,"a3","ancestor")+nodeHtml(branch,"a4","ancestor")+'</div>';
+  document.getElementById("familyTree").innerHTML=html;
+  document.querySelectorAll(".tree-node[data-slot]").forEach(function(btn){
+    btn.addEventListener("click",function(){openSheet(btn.dataset.slot)});
+  });
+  var total=branchTotal(branch);
+  document.getElementById("branchStarTotal").textContent=total+"★";
+  document.getElementById("geneCondition").textContent=total>=12?"条件達成":"あと"+(12-total)+"★";
+  document.getElementById("finalAptitude").textContent=resultingRank(cfg.slots[branch].base,finalStars(branch));
+}
+function renderOwned(){
+  var names=Object.keys(cfg.characters).sort();
+  document.getElementById("ownedList").innerHTML=names.map(function(name){
+    return '<label class="owned-item"><input type="checkbox" data-owned="'+name+'" '+(state.owned[name]?"checked":"")+'><span>'+name+'</span></label>';
+  }).join("");
+  document.querySelectorAll("[data-owned]").forEach(function(el){
+    el.addEventListener("change",function(){
+      state.owned[el.dataset.owned]=el.checked;
+      save();
+      if(state.onlyOwned){rebuildBranch("mile","parent");rebuildBranch("chase","parent");renderTree();}
+    });
+  });
+}
+function tagsFor(name){
+  var c=cfg.characters[name];
+  var tags=(c.tags||[]).slice();
+  if(gradeValue(c.dirt)>=gradeValue("B"))tags.push("ダート"+c.dirt);
+  if(gradeValue(c.chase)>=gradeValue("A"))tags.push("追込A");
+  return tags.filter(function(x,i,a){return a.indexOf(x)===i});
+}
+function reasonFor(branch,name){
+  var c=cfg.characters[name];
+  var parts=[];
+  if(branch==="mile"&&gradeValue(c.mile)>=gradeValue("A"))parts.push("マイル適性が高い");
+  if(branch==="chase"&&gradeValue(c.chase)>=gradeValue("A"))parts.push("追込適性A");
+  var cov=["mile","middle","long"].filter(function(k){return gradeValue(c[k])>=gradeValue("B")}).length;
+  if(cov>=3)parts.push("マイル〜長距離G1を広く走れる");
+  else if(cov>=2)parts.push("複数距離のG1を合わせやすい");
+  if(gradeValue(c.dirt)>=gradeValue("B"))parts.push("ダートG1も追加可能");
+  if(state.owned[name])parts.push("所持登録済み");
+  return parts.join("。")+"。";
+}
+function openSheet(slot){
+  activeSlot=slot;
+  var def=cfg.slots[activeBranch].nodes[slot];
+  document.getElementById("sheetRole").textContent=(activeBranch==="mile"?"マイル側":"追込側")+"・"+def.role;
+  document.getElementById("sheetTitle").textContent="候補と赤因子★";
+  renderSheetStars();
+  var list=candidates(activeBranch,slot).slice(0,12);
+  document.getElementById("candidateList").innerHTML=list.map(function(x,index){
+    var selectedNow=selected(activeBranch,slot)===x.name;
+    return '<button type="button" class="candidate-card '+(selectedNow?"selected":"")+'" data-candidate="'+x.name+'">'+
+      '<div class="candidate-top"><span class="candidate-name">'+(index===0?"最優先：":"")+x.name+'</span><span class="candidate-score">推奨 '+x.score+'</span></div>'+
+      '<div class="candidate-tags">'+tagsFor(x.name).map(function(t){return "<span>"+t+"</span>"}).join("")+'</div>'+
+      '<div class="candidate-reason">'+reasonFor(activeBranch,x.name)+'</div></button>';
+  }).join("");
+  document.querySelectorAll("[data-candidate]").forEach(function(btn){
     btn.addEventListener("click",function(){
-      var key=btn.getAttribute("data-star-key");
-      var value=Number(btn.getAttribute("data-star-value"));
-      set(key,value);
-      document.querySelectorAll('[data-star-key="'+key+'"]').forEach(function(x){
-        x.classList.toggle("active",Number(x.getAttribute("data-star-value"))===value);
-      });
+      state.branches[activeBranch].selection[activeSlot]=btn.dataset.candidate;
+      var order=["parent","gp1","gp2","a1","a2","a3","a4"];
+      var next=order.indexOf(activeSlot)+1;
+      if(activeSlot==="parent"){
+        ["gp1","gp2","a1","a2","a3","a4"].forEach(function(s){state.branches[activeBranch].selection[s]=bestCandidate(activeBranch,s)});
+      }else if(activeSlot==="gp1"){
+        ["a1","a2"].forEach(function(s){state.branches[activeBranch].selection[s]=bestCandidate(activeBranch,s)});
+      }else if(activeSlot==="gp2"){
+        ["a3","a4"].forEach(function(s){state.branches[activeBranch].selection[s]=bestCandidate(activeBranch,s)});
+      }
+      save();renderTree();openSheet(activeSlot);
+    });
+  });
+  var sheet=document.getElementById("candidateSheet");
+  sheet.classList.remove("hidden");sheet.setAttribute("aria-hidden","false");
+}
+function renderSheetStars(){
+  var n=star(activeBranch,activeSlot);
+  document.getElementById("sheetStarButtons").innerHTML=[0,1,2,3].map(function(i){
+    return '<button type="button" data-sheet-star="'+i+'" class="'+(n===i?"active":"")+'">'+(i===0?"0":"★".repeat(i))+'</button>';
+  }).join("");
+  document.querySelectorAll("[data-sheet-star]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      state.branches[activeBranch].stars[activeSlot]=Number(btn.dataset.sheetStar);
+      save();renderSheetStars();renderTree();
     });
   });
 }
-function findAncestor(id){
-  var found=null;
-  cfg.branches.forEach(function(b){
-    b.grandparents.forEach(function(gp){
-      gp.ancestors.forEach(function(a){if(a.id===id)found=a});
+function closeSheet(){
+  document.getElementById("candidateSheet").classList.add("hidden");
+  document.getElementById("candidateSheet").setAttribute("aria-hidden","true");
+}
+function bindStatic(){
+  document.getElementById("targetCharacter").value=state.target;
+  document.getElementById("customTargetName").value=state.customTarget;
+  document.getElementById("customTargetName").classList.toggle("hidden",state.target!=="custom");
+  document.getElementById("targetCharacter").addEventListener("change",function(){
+    state.target=this.value;
+    document.getElementById("customTargetName").classList.toggle("hidden",state.target!=="custom");
+    save();renderTree();
+  });
+  document.getElementById("customTargetName").addEventListener("input",function(){state.customTarget=this.value;save();renderTree()});
+  [["courseSetting","course"],["turnSetting","turn"],["seasonSetting","season"],["groundSetting","ground"]].forEach(function(x){
+    var el=document.getElementById(x[0]);el.value=state[x[1]];
+    el.addEventListener("change",function(){state[x[1]]=this.value;state.whiteOverrides={};save();renderWhites()});
+  });
+  document.getElementById("addWhiteBtn").addEventListener("click",function(){
+    var input=document.getElementById("customWhiteInput");
+    var value=input.value.trim();
+    if(value&&state.customWhites.indexOf(value)<0){state.customWhites.push(value);state.whiteOverrides[value]=true;input.value="";save();renderWhites()}
+  });
+  document.getElementById("resetWhiteBtn").addEventListener("click",function(){state.whiteOverrides={};save();renderWhites()});
+  document.querySelectorAll(".tab").forEach(function(tab){
+    tab.classList.toggle("active",tab.dataset.branch===activeBranch);
+    tab.addEventListener("click",function(){
+      activeBranch=tab.dataset.branch;
+      document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t===tab)});
+      save();renderTree();
     });
   });
-  return found;
-}
-function refreshCandidateInfo(id){
-  var a=findAncestor(id);
-  var old=document.getElementById(id+"Info");
-  if(!a||!old)return;
-  var holder=document.createElement("div");
-  holder.innerHTML=candidateInfoHtml(a);
-  old.replaceWith(holder.firstChild);
-}
-function toggleCustom(){
-  document.querySelectorAll("select[data-custom]").forEach(function(s){
-    var target=document.getElementById(s.getAttribute("data-custom"));
-    if(target)target.classList.toggle("show",s.value==="__custom__");
+  document.getElementById("autoDesignBtn").addEventListener("click",function(){rebuildBranch(activeBranch,"parent");renderTree()});
+  document.getElementById("onlyOwned").checked=state.onlyOwned;
+  document.getElementById("onlyOwned").addEventListener("change",function(){
+    state.onlyOwned=this.checked;save();rebuildBranch("mile","parent");rebuildBranch("chase","parent");renderTree();
+  });
+  document.querySelectorAll("[data-close-sheet]").forEach(function(x){x.addEventListener("click",closeSheet)});
+  document.getElementById("exportBtn").addEventListener("click",function(){
+    var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="ウマ娘自動因子設計_バックアップ.json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+  });
+  document.getElementById("importFile").addEventListener("change",function(e){
+    var file=e.target.files&&e.target.files[0];if(!file)return;
+    var r=new FileReader();r.onload=function(){try{state=Object.assign(defaultState(),JSON.parse(r.result));activeBranch=state.activeBranch||"mile";save();location.reload()}catch(err){alert("読み込めませんでした")}};r.readAsText(file);
+  });
+  document.getElementById("resetAllBtn").addEventListener("click",function(){
+    if(!confirm("全データを初期化しますか？"))return;
+    localStorage.removeItem(KEY);location.reload();
   });
 }
-function geneTotal(b){
-  var t=0;
-  b.grandparents.forEach(function(gp){
-    t+=Number(get(gp.id+".stars",0));
-    gp.ancestors.forEach(function(a){t+=Number(get(a.id+".stars",0))});
-  });
-  return t;
-}
-function finalTotal(b){
-  var t=Number(get(b.parent.id+".stars",0));
-  b.grandparents.forEach(function(gp){t+=Number(get(gp.id+".stars",0))});
-  return t;
-}
-function rank(base,stars){
-  var up=stars>=10?4:stars>=7?3:stars>=4?2:stars>=1?1:0;
-  var ranks=["G","F","E","D","C","B","A","S"];
-  return ranks[Math.min(ranks.indexOf(base)+up,ranks.length-1)];
-}
-function setStatus(id,total){
-  var e=document.getElementById(id);
-  if(total>=cfg.threshold){
-    e.textContent="確定条件達成";e.classList.add("ok");
-  }else{
-    e.textContent="あと"+(cfg.threshold-total)+"★";e.classList.remove("ok");
-  }
-}
-function selectedName(a){
-  var v=get(a.id+".name","");
-  return v==="__custom__"?get(a.id+".custom","").trim():v;
-}
-function allAncestors(){
-  var arr=[];
-  cfg.branches.forEach(function(b){
-    b.grandparents.forEach(function(gp){
-      gp.ancestors.forEach(function(a){arr.push({b:b,gp:gp,a:a})});
-    });
-  });
-  return arr;
-}
-function nextTask(){
-  var all=allAncestors();
-  var x=all.find(function(v){return !selectedName(v.a)});
-  if(x)return x.a.label+"の候補を選ぶ";
-  x=all.find(function(v){return Number(get(v.a.id+".stars",0))<2});
-  if(x)return selectedName(x.a)+"で"+x.b.factor+"赤★2以上を作る";
-  x=all.find(function(v){return !get(v.a.id+".done",false)});
-  if(x)return selectedName(x.a)+"の土台完成にチェックする";
-  for(var i=0;i<cfg.branches.length;i++){
-    var b=cfg.branches[i];
-    for(var j=0;j<b.grandparents.length;j++){
-      var gp=b.grandparents[j];
-      if(!get(gp.id+".done",false))return gp.name+"を育成する";
-    }
-    var total=geneTotal(b);
-    if(total<cfg.threshold)return b.factor+"赤をあと"+(cfg.threshold-total)+"★増やす";
-    if(!get(b.parent.id+".done",false))return b.parent.name+"を育成する";
-    if(!get(b.parent.id+".gene",false))return b.parent.name+"の「"+b.factor+"の遺伝子」を確認する";
-  }
-  if(!get("final.done",false))return "新衣装シンボリクリスエスの本育成を始める";
-  return "完成。バックアップを書き出して保存する";
-}
-function updateDashboard(){
-  var mile=cfg.branches[0],chase=cfg.branches[1];
-  var mg=geneTotal(mile),cg=geneTotal(chase),mf=finalTotal(mile),cf=finalTotal(chase);
-  document.getElementById("mileGeneTotal").textContent=mg+"★";
-  document.getElementById("chaseGeneTotal").textContent=cg+"★";
-  setStatus("mileGeneStatus",mg);setStatus("chaseGeneStatus",cg);
-  document.getElementById("finalMileTotal").textContent=mf+"★";
-  document.getElementById("finalChaseTotal").textContent=cf+"★";
-  document.getElementById("finalMileRank").textContent=rank("E",mf);
-  document.getElementById("finalChaseRank").textContent=rank("D",cf);
-  document.getElementById("nextTask").textContent=nextTask();
-  cfg.branches.forEach(function(b){
-    var total=geneTotal(b),badge=document.getElementById(b.id+"Badge");
-    badge.textContent=total+" / "+cfg.threshold+"★";
-    badge.classList.toggle("ok",total>=cfg.threshold);
-    b.grandparents.forEach(function(gp){
-      var sub=Number(get(gp.id+".stars",0));
-      gp.ancestors.forEach(function(a){sub+=Number(get(a.id+".stars",0))});
-      var el=document.getElementById(gp.id+"Subtotal");
-      if(el)el.innerHTML=gp.name+"＋親2人の小計：<strong>"+sub+"★</strong>";
-    });
-  });
-  updatePedigreeSummary();
-}
-function updatePedigreeSummary(){
-  cfg.branches.forEach(function(b){
-    var parentSub=document.getElementById('ped-sub-'+b.parent.id);
-    var parentStar=document.getElementById('ped-star-'+b.parent.id);
-    var parentNode=document.getElementById('ped-node-'+b.parent.id);
-    if(parentSub)parentSub.textContent=get(b.parent.id+'.gene',false)?'遺伝子OK':'遺伝子未';
-    if(parentStar)parentStar.textContent=starText(b.parent.id);
-    if(parentNode){
-      parentNode.classList.toggle('done',!!get(b.parent.id+'.done',false));
-      var ps=parentSub; if(ps) ps.classList.toggle('ok',!!get(b.parent.id+'.gene',false));
-      if(ps) ps.classList.toggle('note',!get(b.parent.id+'.gene',false));
-    }
-    b.grandparents.forEach(function(gp){
-      var gpStar=document.getElementById('ped-star-'+gp.id), gpSub=document.getElementById('ped-sub-'+gp.id), gpNode=document.getElementById('ped-node-'+gp.id);
-      if(gpStar)gpStar.textContent=starText(gp.id);
-      if(gpSub){gpSub.textContent=gpSubtotal(gp)+'★小計';gpSub.classList.add('note');}
-      if(gpNode)gpNode.classList.toggle('done',!!get(gp.id+'.done',false));
-      gp.ancestors.forEach(function(a){
-        var name=selectedName(a)||'未選択';
-        var n=document.getElementById('ped-name-'+a.id), s=document.getElementById('ped-star-'+a.id), sub=document.getElementById('ped-sub-'+a.id), node=document.getElementById('ped-node-'+a.id);
-        if(n){n.textContent=name;n.classList.toggle('placeholder',name==='未選択');}
-        if(s)s.textContent=starText(a.id);
-        if(sub){sub.textContent=doneText(a.id);sub.classList.toggle('ok',!!get(a.id+'.done',false));}
-        if(node){node.classList.toggle('done',!!get(a.id+'.done',false));node.classList.toggle('pending',name==='未選択');}
-      });
-    });
-  });
-}
-document.getElementById("finalDone").addEventListener("change",function(){set("final.done",this.checked)});
-document.getElementById("finalNote").addEventListener("input",function(){set("final.note",this.value)});
-document.getElementById("exportBtn").addEventListener("click",function(){
-  var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  var url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download="クリスエス因子マネージャー_バックアップ.json";
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(function(){URL.revokeObjectURL(url)},1000);
-});
-document.getElementById("importFile").addEventListener("change",function(e){
-  var file=e.target.files&&e.target.files[0];if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(){
-    try{
-      var obj=JSON.parse(reader.result);
-      if(!obj||!obj.values)throw new Error();
-      state=obj;localStorage.setItem(KEY,JSON.stringify(state));render();alert("読み込みました。");
-    }catch(err){alert("読み込めませんでした。")}
-  };
-  reader.readAsText(file);
-});
-document.getElementById("resetBtn").addEventListener("click",function(){
-  if(!confirm("保存データをすべて消しますか？"))return;
-  localStorage.removeItem(KEY);state={values:{}};render();
-});
-render();
+ensureDesign();
+bindStatic();
+renderAptitudes();
+renderWhites();
+renderOwned();
+renderTree();
 })();

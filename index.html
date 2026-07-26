@@ -3,99 +3,160 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#5b4dd8">
-  <title>技能試験クリスエス 因子マネージャー</title>
+  <meta name="theme-color" content="#5748d8">
+  <title>ウマ娘 自動因子設計</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <div>
-      <span class="version">Ver.1.4</span>
-      <h1>技能試験クリスエス<br>因子マネージャー</h1>
-      <p>家系図風レイアウト・赤因子★・G1広域候補をまとめて管理</p>
-    </div>
-    <span id="saveState" class="save-state">自動保存</span>
-  </header>
+<header class="topbar">
+  <div>
+    <span class="version">Ver.2.0 試作</span>
+    <h1>技能試験・自動因子設計</h1>
+  </div>
+  <span id="saveState" class="save-state">自動保存</span>
+</header>
 
-  <main>
-    <section class="card">
-      <h2>現在の状況</h2>
-      <div class="status-grid">
-        <div class="status">
-          <span>ライン作成時<br>マイル赤</span>
-          <strong id="mileGeneTotal">0★</strong>
-          <em id="mileGeneStatus">あと12★</em>
-        </div>
-        <div class="status">
-          <span>ステゴ作成時<br>追込赤</span>
-          <strong id="chaseGeneTotal">0★</strong>
-          <em id="chaseGeneStatus">あと12★</em>
-        </div>
-        <div class="status">
-          <span>最終開始時<br>マイル</span>
-          <strong id="finalMileTotal">0★</strong>
-          <em id="finalMileRank">E</em>
-        </div>
-        <div class="status">
-          <span>最終開始時<br>追込</span>
-          <strong id="finalChaseTotal">0★</strong>
-          <em id="finalChaseRank">D</em>
-        </div>
-      </div>
-      <div class="next-box">
-        <small>次にやること</small>
-        <b id="nextTask">曾祖父母候補を選んでください。</b>
-      </div>
-      <p class="note">遺伝子判定は、親2人＋祖父母4人の対象赤因子が合計12★以上という今回の設計条件で表示します。</p>
-    </section>
+<main>
+  <details class="panel setup-panel" open>
+    <summary>① 育成したいウマ娘・目標を設定</summary>
+    <div class="panel-body">
+      <label for="targetCharacter">育成ウマ娘</label>
+      <select id="targetCharacter">
+        <option value="jetblack">[Jetblack Automaton] シンボリクリスエス</option>
+        <option value="custom">自由入力</option>
+      </select>
+      <input id="customTargetName" class="hidden" type="text" placeholder="育成ウマ娘名">
 
-    <section class="card tree-jump-card">
-      <h2>家系図を見る・編集する</h2>
-      <p class="tree-jump-note">下は見やすい家系図表示です。各カードをタップすると、その編集欄へ移動します。</p>
-      <div class="tree-jump-buttons">
-        <a href="#branch-mile">マイル側の家系図</a>
-        <a href="#branch-chase">追込側の家系図</a>
-      </div>
-      <div class="down-arrow">↓ このすぐ下が家系図です</div>
-    </section>
+      <div class="section-heading">初期適性 → 目標適性</div>
+      <div id="aptitudeGrid" class="aptitude-grid"></div>
+      <p class="hint">初期値が違っていたらタップして修正できます。目標はマイルA・追込Aを初期設定しています。</p>
 
-    <div id="branches"></div>
-
-    <section class="card guide-card">
-      <h2>候補の見方</h2>
-      <div class="legend">
-        <span>🤝 相性優先</span>
-        <span>🏆 マ中長G1</span>
-        <span>🟫 ダートG1</span>
-        <span>🌙 追込A</span>
-      </div>
-      <p class="note">各プルダウンは「相性優先」「G1広域」「ダート対応」に分けています。選ぶと初期適性の目安と採用理由が表示されます。</p>
-    </section>
-
-    <section class="card">
-      <h2>最終育成</h2>
-      <label class="check">
-        <input id="finalDone" type="checkbox">
-        <span>新衣装シンボリクリスエスの本育成が完了</span>
-      </label>
-      <label for="finalNote">メモ</label>
-      <textarea id="finalNote" rows="4" placeholder="評価点、取得スキル、妥協点など"></textarea>
-    </section>
-
-    <section class="card">
-      <h2>バックアップ</h2>
-      <div class="buttons">
-        <button id="exportBtn">データを書き出す</button>
-        <label class="import-btn">
-          データを読み込む
-          <input id="importFile" type="file" accept=".json,application/json">
+      <div class="compact-settings">
+        <label>レース場
+          <select id="courseSetting">
+            <option value="">指定なし</option>
+            <option value="東京">東京</option>
+            <option value="中山">中山</option>
+            <option value="京都">京都</option>
+            <option value="阪神">阪神</option>
+            <option value="大井">大井</option>
+          </select>
+        </label>
+        <label>回り
+          <select id="turnSetting">
+            <option value="">指定なし</option>
+            <option value="左">左回り</option>
+            <option value="右">右回り</option>
+          </select>
+        </label>
+        <label>季節
+          <select id="seasonSetting">
+            <option value="">指定なし</option>
+            <option value="春">春</option>
+            <option value="夏">夏</option>
+            <option value="秋">秋</option>
+            <option value="冬">冬</option>
+          </select>
+        </label>
+        <label>バ場
+          <select id="groundSetting">
+            <option value="">指定なし</option>
+            <option value="良">良</option>
+            <option value="道悪">道悪</option>
+          </select>
         </label>
       </div>
-      <button id="resetBtn" class="danger">全データを初期化</button>
-    </section>
-  </main>
 
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+      <div class="section-heading row-heading">
+        <span>技能試験向け白因子</span>
+        <button id="resetWhiteBtn" class="mini-button" type="button">自動選択に戻す</button>
+      </div>
+      <div id="whiteFactorList" class="chip-list"></div>
+      <div class="custom-factor-row">
+        <input id="customWhiteInput" type="text" placeholder="白因子を追加">
+        <button id="addWhiteBtn" type="button">追加</button>
+      </div>
+    </div>
+  </details>
+
+  <section class="panel plan-panel">
+    <div class="plan-head">
+      <div>
+        <h2>② おすすめ家系図</h2>
+        <p>カードをタップすると他候補・赤因子★を変更できます。</p>
+      </div>
+      <button id="autoDesignBtn" class="auto-button" type="button">自動で組み直す</button>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-branch="mile" type="button">マイル側</button>
+      <button class="tab" data-branch="chase" type="button">追込側</button>
+    </div>
+
+    <div class="tree-summary">
+      <div>
+        <small>赤因子合計</small>
+        <strong id="branchStarTotal">0★</strong>
+      </div>
+      <div>
+        <small>遺伝子条件</small>
+        <strong id="geneCondition">あと12★</strong>
+      </div>
+      <div>
+        <small>最終開始時</small>
+        <strong id="finalAptitude">-</strong>
+      </div>
+    </div>
+
+    <div id="familyTree" class="family-tree"></div>
+
+    <div class="tree-help">上から「育成ウマ娘 → 親 → 祖父母 → 曾祖父母」です。</div>
+  </section>
+
+  <details class="panel ownership-panel">
+    <summary>③ 所持ウマ娘で絞り込む</summary>
+    <div class="panel-body">
+      <label class="switch-row">
+        <input id="onlyOwned" type="checkbox">
+        <span>所持ウマ娘だけを候補にする</span>
+      </label>
+      <div id="ownedList" class="owned-list"></div>
+      <p class="hint">スクリーンショットからの自動判別は、精度の高い画像認識が必要なため、この試作版ではまだ入れていません。</p>
+    </div>
+  </details>
+
+  <section class="panel backup-panel">
+    <h2>保存・バックアップ</h2>
+    <div class="button-grid">
+      <button id="exportBtn" type="button">書き出す</button>
+      <label class="import-button">読み込む<input id="importFile" type="file" accept=".json,application/json"></label>
+    </div>
+    <button id="resetAllBtn" class="danger-button" type="button">全データを初期化</button>
+  </section>
+</main>
+
+<div id="candidateSheet" class="sheet hidden" aria-hidden="true">
+  <div class="sheet-backdrop" data-close-sheet></div>
+  <section class="sheet-card">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <small id="sheetRole"></small>
+        <h2 id="sheetTitle">候補選択</h2>
+      </div>
+      <button class="close-button" type="button" data-close-sheet>閉じる</button>
+    </div>
+
+    <div class="sheet-stars">
+      <span>赤因子★</span>
+      <div id="sheetStarButtons" class="star-buttons"></div>
+    </div>
+
+    <div id="candidateList" class="candidate-list"></div>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
