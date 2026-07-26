@@ -143,7 +143,9 @@ function branch(b){
       '<div class="ancestors">'+an+'</div><div id="'+gp.id+'Subtotal" class="subtotal"></div>');
   }).join("");
   var extra='<label class="check"><input type="checkbox" data-key="'+b.parent.id+'.gene"><span>「'+esc(b.factor)+'の遺伝子」取得済み</span></label>';
-  return '<section class="card"><div class="branch-head"><div><h2>'+esc(b.title)+'</h2>'+
+  return '<section id="branch-'+b.id+'" class="card branch-section">'+
+    '<div class="tree-label">🌳 家系図</div>'+
+    '<div class="branch-head"><div><h2>'+esc(b.title)+'</h2>'+
     '<small>'+esc(b.parent.name)+'に'+esc(b.factor)+'の遺伝子を付ける</small></div>'+
     '<span id="'+b.id+'Badge" class="badge">0 / '+cfg.threshold+'★</span></div>'+
     person(b.parent,"parent",b.factor,extra)+gps+'</section>';
