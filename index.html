@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.1 試作</span>
+    <span class="version">Ver.2.2 試作</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -18,28 +18,26 @@
 
 <main>
   <details class="panel setup-panel" open>
-    <summary>① 育成ウマ娘・適性・条件</summary>
+    <summary>① 育成ウマ娘・適性・白因子</summary>
     <div class="panel-body">
       <label for="targetCharacter">育成ウマ娘</label>
       <select id="targetCharacter"></select>
       <input id="customTargetName" class="hidden" type="text" list="targetNameSuggestions" placeholder="ウマ娘名を入力">
       <datalist id="targetNameSuggestions"></datalist>
-      <p class="hint">登録済み候補を選ぶと初期適性が切り替わります。自由入力では初期値をGに戻すので、下で修正してください。</p>
 
       <div class="section-heading">初期適性 → 目標適性</div>
       <div id="aptitudeGrid" class="aptitude-grid"></div>
 
-      <div class="section-heading">複数選択できる緑スキル条件</div>
-      <div id="conditionGroups"></div>
-
       <div class="section-heading row-heading">
-        <span>技能試験向け白因子</span>
+        <span>白因子の選択</span>
         <div class="inline-actions">
-          <button id="openWhitePickerBtn" class="mini-button" type="button">＋選択肢から追加</button>
-          <button id="resetWhiteBtn" class="mini-button ghost" type="button">自動選択に戻す</button>
+          <button id="openWhitePickerBtn" class="mini-button" type="button">一覧から追加・削除</button>
+          <button id="resetWhiteBtn" class="mini-button ghost" type="button">初期選択へ戻す</button>
         </div>
       </div>
-      <div id="whiteFactorList" class="chip-list"></div>
+      <div id="whiteSelectionSummary" class="selection-summary"></div>
+      <div id="whiteFactorGroups"></div>
+      <p class="hint">実在するレース場○だけを登録しています。川崎・船橋・盛岡レース場○は選択肢に入れていません。</p>
     </div>
   </details>
 
@@ -47,7 +45,7 @@
     <div class="plan-head">
       <div>
         <h2>② おすすめ家系図</h2>
-        <p>カードをタップすると候補・赤因子★・白因子を編集できます。</p>
+        <p>カードをタップし、「候補」と「因子」をタブで切り替えます。</p>
       </div>
       <button id="autoDesignBtn" class="auto-button" type="button">自動で組み直す</button>
     </div>
@@ -58,31 +56,23 @@
     </div>
 
     <div class="tree-summary">
-      <div>
-        <small>赤因子合計</small>
-        <strong id="branchStarTotal">0★</strong>
-      </div>
-      <div>
-        <small>遺伝子条件</small>
-        <strong id="geneCondition">あと12★</strong>
-      </div>
-      <div>
-        <small>最終開始時</small>
-        <strong id="finalAptitude">-</strong>
-      </div>
+      <div><small>赤因子合計</small><strong id="branchStarTotal">0★</strong></div>
+      <div><small>遺伝子条件</small><strong id="geneCondition">あと12★</strong></div>
+      <div><small>最終開始時</small><strong id="finalAptitude">-</strong></div>
     </div>
 
     <div id="familyTree" class="family-tree"></div>
-    <div class="tree-help">育成ウマ娘 → 親 → 祖父母 → 曾祖父母。各カードをタップして編集します。</div>
+    <div class="tree-help">各カード：候補変更／赤因子★／スキル因子／レース因子</div>
   </section>
 
   <details class="panel schedule-panel">
-    <summary>③ 共通G1ボーナス向け出走スケジュール</summary>
+    <summary>③ G1スケジュール・レース因子</summary>
     <div class="panel-body">
-      <div class="schedule-head">
-        <p class="hint">家系図の7人が走りやすいG1を上に表示します。チェックは出走予定・達成メモとして保存されます。</p>
-        <div class="schedule-count"><span id="raceCheckedCount">0</span> / <span id="raceTotalCount">0</span>戦</div>
+      <div class="schedule-legend">
+        <span class="legend-factor">因子あり</span>
+        <span class="legend-none">因子なし・共通G1用</span>
       </div>
+      <p class="hint">勝利チェックは共通G1ボーナスの計画用です。効果欄にレース因子の効果も表示します。</p>
       <div id="raceSchedule"></div>
     </div>
   </details>
@@ -90,12 +80,8 @@
   <details class="panel ownership-panel">
     <summary>④ 所持ウマ娘で絞り込む</summary>
     <div class="panel-body">
-      <label class="switch-row">
-        <input id="onlyOwned" type="checkbox">
-        <span>所持ウマ娘だけを候補にする</span>
-      </label>
+      <label class="switch-row"><input id="onlyOwned" type="checkbox"><span>所持ウマ娘だけを候補にする</span></label>
       <div id="ownedList" class="owned-list"></div>
-      <p class="hint">所持一覧画像の自動判別は未実装です。まずは手動登録で確実に絞り込めます。</p>
     </div>
   </details>
 
@@ -106,35 +92,50 @@
       <button id="shareBackupBtn" type="button">ファイルに保存</button>
       <label class="import-button">バックアップを読む<input id="importFile" type="file" accept=".json,application/json"></label>
     </div>
-    <button id="downloadBtn" class="secondary-wide" type="button">通常ダウンロードで保存</button>
+    <button id="downloadBtn" class="secondary-wide" type="button">通常ダウンロード</button>
     <button id="resetAllBtn" class="danger-button" type="button">全データを初期化</button>
-    <p class="hint">iPhoneのSafariではWebページから保存フォルダを直接固定できません。「ファイルに保存」を押し、共有画面の「ファイルに保存」でiCloud Drive／このiPhone内のフォルダを選んでください。</p>
   </section>
 </main>
 
-<div id="candidateSheet" class="sheet hidden" aria-hidden="true">
-  <div class="sheet-backdrop" data-close-candidate></div>
+<div id="nodeSheet" class="sheet hidden" aria-hidden="true">
+  <div class="sheet-backdrop" data-close-node></div>
   <section class="sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div>
-        <small id="sheetRole"></small>
-        <h2 id="sheetTitle">候補と因子</h2>
+      <div><small id="sheetRole"></small><h2 id="sheetTitle">個体編集</h2></div>
+      <button class="close-button" type="button" data-close-node>閉じる</button>
+    </div>
+
+    <div class="sheet-tabs">
+      <button class="sheet-tab active" data-sheet-tab="candidate" type="button">候補</button>
+      <button class="sheet-tab" data-sheet-tab="factor" type="button">因子</button>
+    </div>
+
+    <div id="candidatePane" class="sheet-pane">
+      <div class="sheet-stars">
+        <span>赤因子★</span>
+        <div id="sheetStarButtons" class="star-buttons"></div>
       </div>
-      <button class="close-button" type="button" data-close-candidate>閉じる</button>
+      <div id="candidateList" class="candidate-list"></div>
     </div>
 
-    <div class="sheet-stars">
-      <span>赤因子★</span>
-      <div id="sheetStarButtons" class="star-buttons"></div>
+    <div id="factorPane" class="sheet-pane hidden">
+      <div class="factor-subtabs">
+        <button class="factor-subtab active" data-factor-tab="skill" type="button">スキル因子</button>
+        <button class="factor-subtab" data-factor-tab="race" type="button">レース因子</button>
+      </div>
+      <div id="skillFactorPane">
+        <div class="factor-toolbar">
+          <button id="assignAllTopBtn" type="button">上で選んだ因子を全部追加</button>
+          <input id="nodeSkillSearch" type="search" placeholder="スキル検索">
+        </div>
+        <div id="nodeWhiteSkills" class="node-white-list"></div>
+      </div>
+      <div id="raceFactorPane" class="hidden">
+        <p class="sheet-note">このウマ娘が適性B以上で走りやすいG1を表示。レース勝利・因子★を記録できます。</p>
+        <div id="nodeRaceFactors" class="node-race-list"></div>
+      </div>
     </div>
-
-    <div class="sheet-section-title">おすすめ候補</div>
-    <div id="candidateList" class="candidate-list"></div>
-
-    <div class="sheet-section-title">この個体に覚えさせたい白スキル</div>
-    <p class="sheet-note">「習得」をチェックし、育成終了後に白因子が付いたら★を入力します。％は次世代への簡易推定です。</p>
-    <div id="nodeWhiteSkills" class="node-white-list"></div>
   </section>
 </div>
 
@@ -143,17 +144,16 @@
   <section class="sheet-card white-sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div>
-        <small>実在スキル一覧</small>
-        <h2>白因子を選択</h2>
-      </div>
+      <div><small>実在スキル候補</small><h2>白因子を選択</h2></div>
       <button class="close-button" type="button" data-close-white>閉じる</button>
     </div>
-    <input id="whiteSearch" class="search-input" type="search" placeholder="スキル名・カテゴリで検索">
-    <p class="sheet-note">未入力でも、技能試験で使いやすい低コスト候補を上から表示します。</p>
+    <input id="whiteSearch" class="search-input" type="search" placeholder="例：伏兵、逃げ、短距離、デバフ">
+    <div id="whiteCategoryTabs" class="category-tabs"></div>
     <div id="whitePickerList" class="white-picker-list"></div>
   </section>
 </div>
+
+<div id="toast" class="toast hidden"></div>
 
 <script src="data.js"></script>
 <script src="app.js"></script>
