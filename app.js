@@ -1,8 +1,8 @@
 (function(){
 "use strict";
 var cfg=window.AUTO_FACTOR_DATA;
-var KEY="uma-auto-factor-v26";
-var PREV="uma-auto-factor-v25";
+var KEY="uma-auto-factor-v27";
+var PREV="uma-auto-factor-v26";
 var state=load();
 var activeBranch=state.activeBranch||"mile";
 var activeSlot=null;
@@ -22,7 +22,7 @@ function defaultSelectedSkills(){
 function defaultState(){
   var target=cfg.targets.jetblack;
   return{
-    version:"2.6",activeBranch:"mile",target:"jetblack",customTarget:"",
+    version:"2.7",activeBranch:"mile",target:"jetblack",customTarget:"",
     initial:clone(target.initial),desired:clone(target.desired),
     selectedSkills:defaultSelectedSkills(),
     onlyOwned:false,owned:{},
@@ -83,6 +83,13 @@ function applyV26Corrections(){
       if(state.desired["先行"]==="B")state.desired["先行"]="A";
     }
     state.corrections.v26=true;
+  }
+}
+function applyV27Corrections(){
+  state.corrections=state.corrections||{};
+  if(!state.corrections.v27){
+    if(state.target==="jetblack"){state.initial["先行"]="A";state.desired["先行"]="A";}
+    state.corrections.v27=true;
   }
 }
 function save(show){
@@ -168,12 +175,16 @@ function effClass(v){return v>=2?"":v>=1.5?"mid":"low"}
 function targetName(){return state.target==="custom"?(state.customTarget||"自由入力ウマ娘"):(cfg.targets[state.target]?cfg.targets[state.target].name:"育成ウマ娘")}
 function targetBaseName(){var n=targetName();return n.indexOf("シンボリクリスエス")>=0?"シンボリクリスエス":n.replace(/^\[[^\]]+\]\s*/,"")}
 function skillMultiplier(s){
-  if(displayCategory(s)==="デバフ")return 1;
   var t=s.aptitudeType;if(!t)return 1;
   var r=state.desired[t]||"G";
   return(r==="A"||r==="S"?1.1:(r==="B"||r==="C"?0.9:(r==="G"?0.7:0.8)));
 }
-function skillMetrics(s){var ev=s.evaluation||0,m=skillMultiplier(s),adjusted=Math.round(ev*m),eff=s.sp?Math.round(adjusted/s.sp*100)/100:null;return{evaluation:adjusted,efficiency:eff,multiplier:m,verified:!!s.verifiedEvaluation}}
+function skillMetrics(s){
+  var has=Number.isFinite(Number(s.evaluation))&&Number(s.sp)>0,m=skillMultiplier(s);
+  if(!has)return{evaluation:null,efficiency:null,multiplier:m,verified:false};
+  var adjusted=Math.round(Number(s.evaluation)*m),eff=Math.round(adjusted/Number(s.sp)*100)/100;
+  return{evaluation:adjusted,efficiency:eff,multiplier:m,verified:!!s.verifiedEvaluation};
+}
 function efficiencyClass(v){return v>=2?"good":v>=1.5?"":"estimated"}
 function timeKey(r){return r.phase+"|"+r.time}
 function selectedRaceObjects(b){var ids=state.branches[b].races||{};return cfg.races.filter(function(r){return!!ids[r.id]})}
@@ -248,10 +259,10 @@ function renderSelectedSkills(){
     return'<button type="button" class="top-white-tab '+(topWhiteCategory===g?"active":"")+'" data-top-white-cat="'+esc(g)+'">'+esc(g)+'<small>'+groups[g].length+'個</small></button>'
   }).join("");
   document.querySelectorAll("[data-top-white-cat]").forEach(function(e){e.addEventListener("click",function(){topWhiteCategory=e.dataset.topWhiteCat;renderSelectedSkills()})});
-  var list=groups[topWhiteCategory].slice().sort(function(a,b){return(skillMetrics(b).efficiency||0)-(skillMetrics(a).efficiency||0)});
+  var list=groups[topWhiteCategory].slice().sort(function(a,b){return(skillMetrics(b).efficiency??-1)-(skillMetrics(a).efficiency??-1)});
   document.getElementById("whiteFactorGroups").innerHTML=list.length?list.map(function(s){
-    var m=skillMetrics(s),eff=m.efficiency||0;
-    return'<label class="top-skill-chip" title="'+esc(s.name)+'"><input type="checkbox" data-skill-chip="'+esc(s.name)+'" checked><span class="top-skill-name">'+esc(s.name)+'</span><span class="top-skill-eff '+effClass(eff)+'">'+eff.toFixed(2)+'</span></label>'
+    var m=skillMetrics(s),eff=m.efficiency;
+    return'<label class="top-skill-chip" title="'+esc(s.name)+'"><input type="checkbox" data-skill-chip="'+esc(s.name)+'" checked><span class="top-skill-name">'+esc(s.name)+'</span><span class="top-skill-eff '+effClass(eff)+'">'+(eff==null?'—':eff.toFixed(2))+'</span></label>'
   }).join(""):'<div class="top-white-empty">この区分で選択中の白因子はありません。</div>';
   document.querySelectorAll("[data-skill-chip]").forEach(function(e){e.addEventListener("change",function(){state.selectedSkills[e.dataset.skillChip]=false;save();renderSelectedSkills()})})
 }
@@ -327,7 +338,7 @@ function renderSkillFactors(){
   names.sort(function(a,b){return(skillMetrics(skillByName(b)).efficiency||0)-(skillMetrics(skillByName(a)).efficiency||0)});
   document.getElementById("nodeWhiteSkills").innerHTML=names.map(function(n){
     var s=skillByName(n),m=skillMetrics(s),x=factorState(activeBranch,activeSlot,n),p=x.stars?individualEstimate(activeBranch,activeSlot,x.stars,"skill"):0,comb=combinedForChild(activeBranch,activeSlot,n,"skill");
-    return'<div class="node-white-row"><div class="node-white-top"><input type="checkbox" data-assign="'+esc(n)+'" '+(x.assigned?"checked":"")+'><span class="node-white-name">'+esc(n)+'</span><span class="efficiency-badge '+effClass(m.efficiency||0)+'"><small class="efficiency-caption">効率</small>'+((m.efficiency||0).toFixed(2))+'</span></div><div class="white-star-row"><label><input type="checkbox" data-learned="'+esc(n)+'" '+(x.learned?"checked":"")+'>習得</label><span>白★</span>'+[0,1,2,3].map(function(i){return'<button data-skill-star="'+esc(n)+'" data-value="'+i+'" class="'+(x.stars===i?"active":"")+'">'+(i?("★".repeat(i)):"0")+'</button>'}).join("")+'</div><div class="factor-prob-row">'+(x.stars?'<span>単体 '+p+'%</span>':'')+(comb?'<span class="combined">父母合算 '+comb.any+'%</span><span class="both">両方 '+comb.both+'%</span>':'')+'</div></div>'
+    return'<div class="node-white-row"><div class="node-white-top"><input type="checkbox" data-assign="'+esc(n)+'" '+(x.assigned?"checked":"")+'><span class="node-white-name">'+esc(n)+'</span><span class="efficiency-badge '+effClass(m.efficiency||0)+'"><small class="efficiency-caption">効率</small>'+(m.efficiency==null?'—':m.efficiency.toFixed(2))+'</span></div><div class="white-star-row"><label><input type="checkbox" data-learned="'+esc(n)+'" '+(x.learned?"checked":"")+'>習得</label><span>白★</span>'+[0,1,2,3].map(function(i){return'<button data-skill-star="'+esc(n)+'" data-value="'+i+'" class="'+(x.stars===i?"active":"")+'">'+(i?("★".repeat(i)):"0")+'</button>'}).join("")+'</div><div class="factor-prob-row">'+(x.stars?'<span>単体 '+p+'%</span>':'')+(comb?'<span class="combined">父母合算 '+comb.any+'%</span><span class="both">両方 '+comb.both+'%</span>':'')+'</div></div>'
   }).join("");
   document.querySelectorAll("[data-assign]").forEach(function(e){e.addEventListener("change",function(){factorState(activeBranch,activeSlot,e.dataset.assign).assigned=e.checked;save();renderTree()})});
   document.querySelectorAll("[data-learned]").forEach(function(e){e.addEventListener("change",function(){factorState(activeBranch,activeSlot,e.dataset.learned).learned=e.checked;save()})});
@@ -370,9 +381,9 @@ function renderCategoryTabs(){
 function renderWhitePicker(){
   var q=(document.getElementById("whiteSearch").value||"").trim().toLowerCase();
   var list=cfg.skillCatalog.slice().filter(function(s){return(whitePickerCategory==="全部"||displayCategory(s)===whitePickerCategory)&&(!q||s.name.toLowerCase().indexOf(q)>=0||displayCategory(s).toLowerCase().indexOf(q)>=0||(s.tags||[]).join(" ").toLowerCase().indexOf(q)>=0)});
-  list.sort(function(a,b){if(whiteSort==="name")return a.name.localeCompare(b.name,"ja");return(skillMetrics(b).efficiency||0)-(skillMetrics(a).efficiency||0)});
+  list.sort(function(a,b){if(whiteSort==="name")return a.name.localeCompare(b.name,"ja");return(skillMetrics(b).efficiency??-1)-(skillMetrics(a).efficiency??-1)});
   var count=document.getElementById("pickerCount");if(count)count.textContent=list.length+"件";
-  document.getElementById("whitePickerList").innerHTML=list.map(function(s){var on=!!state.selectedSkills[s.name],m=skillMetrics(s),featured=(cfg.racecourseSkills||[]).indexOf(s.name)>=0;return'<button title="'+esc(s.name)+'" class="white-pick-row '+(on?"selected ":"")+(featured?"racecourse-featured":"")+'" data-pick="'+esc(s.name)+'"><span class="white-pick-name">'+esc(s.name)+'</span><span class="efficiency-badge '+effClass(m.efficiency||0)+'"><small class="efficiency-caption">効率</small>'+((m.efficiency||0).toFixed(2))+'</span></button>'}).join("");
+  document.getElementById("whitePickerList").innerHTML=list.map(function(s){var on=!!state.selectedSkills[s.name],m=skillMetrics(s),featured=(cfg.racecourseSkills||[]).indexOf(s.name)>=0;return'<button title="'+esc(s.name)+'" class="white-pick-row '+(on?"selected ":"")+(featured?"racecourse-featured":"")+'" data-pick="'+esc(s.name)+'"><span class="white-pick-name">'+esc(s.name)+'</span><span class="efficiency-badge '+effClass(m.efficiency||0)+'"><small class="efficiency-caption">効率</small>'+(m.efficiency==null?'—':m.efficiency.toFixed(2))+'</span></button>'}).join("");
   document.querySelectorAll("[data-pick]").forEach(function(e){e.addEventListener("click",function(){state.selectedSkills[e.dataset.pick]=!state.selectedSkills[e.dataset.pick];save();renderWhitePicker();renderSelectedSkills()})});renderCategoryTabs()
 }
 function openWhitePicker(){whitePickerCategory=topWhiteCategory;document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")}
@@ -381,16 +392,21 @@ function renderStorageInfo(){
   var raw=JSON.stringify(state),verify=localStorage.getItem(KEY),ok=verify===raw,when=state.lastSaved?new Date(state.lastSaved).toLocaleString("ja-JP"):"未保存";
   document.getElementById("storageInfo").innerHTML='<strong>Safari内の自動保存：'+(ok?"正常":"要確認")+'</strong>最終保存：'+when+'<br>データ量：約'+Math.ceil(new Blob([raw]).size/1024)+'KB'+(state.lastImport?'<br>最終読込：'+new Date(state.lastImport).toLocaleString("ja-JP"):"")
 }
-function backupFile(){var payload=clone(state);payload.backupMeta={version:"2.6",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v26_バックアップ.json",{type:"application/json"})}
+function backupFile(){var payload=clone(state);payload.backupMeta={version:"2.7",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v27_バックアップ.json",{type:"application/json"})}
 async function shareBackup(){var f=backupFile();if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"因子設計バックアップ"});toast("共有画面を開きました");return}catch(e){if(e.name==="AbortError")return}}downloadBackup()}
 function downloadBackup(){var f=backupFile(),u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);toast("バックアップを作成しました")}
 function renderScenario(){var e=document.getElementById("scenarioMode");if(!e)return;e.innerHTML=(cfg.scenarioModes||[]).map(function(x){return'<option value="'+x.id+'" '+(state.scenarioMode===x.id?'selected':'')+'>'+esc(x.name)+'</option>'}).join("")}
 function selectRecommendedRaces(){var b=activeBranch;state.branches[b].races={};var byTurn={};cfg.races.forEach(function(r){var k=timeKey(r),score=raceCoverage(b,r)-["parent","gp1","gp2","a1","a2","a3","a4"].filter(function(s){var n=selected(b,s);return n&&blockedReason(n,r)}).length;var old=byTurn[k];if(!old||score>old.score)byTurn[k]={r:r,score:score}});Object.keys(byTurn).forEach(function(k){if(byTurn[k].score>=4)state.branches[b].races[byTurn[k].r.id]=true});save("おすすめG1を選択しました");renderSchedule();renderTree()}
+function on(id,event,handler){var e=document.getElementById(id);if(e)e.addEventListener(event,handler);}
+document.addEventListener("click",function(ev){
+  if(ev.target.closest("[data-close-white]")){ev.preventDefault();closeWhite();}
+  if(ev.target.closest("[data-close-node]")){ev.preventDefault();closeNode();}
+});
 function bind(){
   renderTargets();renderScenario();document.getElementById("scenarioMode").addEventListener("change",function(){state.scenarioMode=this.value;save();renderSchedule();renderTree()});document.getElementById("selectRecommendedRacesBtn").addEventListener("click",selectRecommendedRaces);document.getElementById("clearRacesBtn").addEventListener("click",function(){state.branches[activeBranch].races={};save();renderSchedule();renderTree()});document.getElementById("targetCharacter").addEventListener("change",function(){chooseTarget(this.value)});
   document.getElementById("customTargetName").addEventListener("input",function(){state.customTarget=this.value;var id=Object.keys(cfg.targets).find(function(k){return cfg.targets[k].name===state.customTarget});if(id){state.initial=clone(cfg.targets[id].initial);state.desired=clone(cfg.targets[id].desired||cfg.targets[id].initial);renderAptitudes()}save();renderTree()});
   document.getElementById("openWhitePickerBtn").addEventListener("click",openWhitePicker);document.getElementById("resetWhiteBtn").addEventListener("click",function(){state.selectedSkills=defaultSelectedSkills();save();renderSelectedSkills()});document.getElementById("whiteSearch").addEventListener("input",renderWhitePicker);document.getElementById("whiteSort").addEventListener("change",function(){whiteSort=this.value;renderWhitePicker()});
-  document.querySelectorAll("[data-close-white]").forEach(function(e){e.addEventListener("click",closeWhite)});document.querySelectorAll("[data-close-node]").forEach(function(e){e.addEventListener("click",closeNode)});
+  
   document.querySelectorAll(".sheet-tab").forEach(function(e){e.addEventListener("click",function(){switchSheetTab(e.dataset.sheetTab)})});document.querySelectorAll(".factor-subtab").forEach(function(e){e.addEventListener("click",function(){switchFactorTab(e.dataset.factorTab)})});
   document.getElementById("assignAllTopBtn").addEventListener("click",function(){selectedSkillNames().forEach(function(n){factorState(activeBranch,activeSlot,n).assigned=true});save("全因子を追加しました");renderSkillFactors();renderTree()});document.getElementById("nodeSkillSearch").addEventListener("input",renderSkillFactors);
   document.querySelectorAll(".tab").forEach(function(e){e.classList.toggle("active",e.dataset.branch===activeBranch);e.addEventListener("click",function(){activeBranch=e.dataset.branch;document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t===e)});save();renderTree();renderSchedule()})});
@@ -400,5 +416,11 @@ function bind(){
   document.getElementById("importFile").addEventListener("change",function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var obj=JSON.parse(r.result);state=deepMerge(defaultState(),obj);state.lastImport=new Date().toISOString();activeBranch=state.activeBranch||"mile";save();toast("読み込み完了");setTimeout(function(){location.reload()},700)}catch(err){alert("読み込みに失敗しました")}};r.readAsText(f)});
   document.getElementById("resetAllBtn").addEventListener("click",function(){if(confirm("全データを初期化しますか？")){localStorage.removeItem(KEY);location.reload()}})
 }
-applyNewCatalogDefaults();applyV26Corrections();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
+try{
+  applyNewCatalogDefaults();applyV26Corrections();applyV27Corrections();ensure();bind();
+  renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
+}catch(err){
+  window.__initError=String(err&&err.stack||err);console.error(err);
+  ["aptitudeGrid","topWhiteCategoryTabs","familyTree"].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='<div class="loading-note">読み込みエラー：ページを再読み込みしてください</div>'});
+}
 })();
