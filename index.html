@@ -10,15 +10,15 @@
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.5 試作</span>
+    <span class="version">Ver.2.6 試作</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
 </header>
 
 <main>
-  <details class="panel setup-panel" open>
-    <summary>① 育成ウマ娘・適性・白因子</summary>
+  <section class="panel setup-panel">
+    <div class="static-panel-title">① 育成ウマ娘・適性・白因子</div>
     <div class="panel-body">
       <label for="targetCharacter">育成ウマ娘</label>
       <select id="targetCharacter"></select>
@@ -31,17 +31,17 @@
       <div class="section-heading row-heading">
         <span>白因子の選択</span>
         <div class="inline-actions">
-          <button id="openWhitePickerBtn" class="mini-button" type="button">一覧から追加・削除</button>
+          <button id="openWhitePickerBtn" class="mini-button" type="button">白因子一覧</button>
           <button id="resetWhiteBtn" class="mini-button ghost" type="button">初期選択へ戻す</button>
         </div>
       </div>
       <div id="dataStatus" class="data-status"></div>
-      <div class="racecourse-proof"><div class="racecourse-proof-head"><strong>レース場○ 17種</strong><button id="openRacecourseBtn" class="mini-button" type="button">レース場だけ表示</button></div><div id="racecourseProofList" class="racecourse-proof-list"></div><div id="quickGreenList" class="racecourse-proof-list quick-green"></div></div>
       <div id="whiteSelectionSummary" class="selection-summary"></div>
-      <div id="whiteFactorGroups"></div>
-      <p class="hint">川崎・船橋・盛岡・ロンシャン・サンタアニタパーク・デルマーを含む、2026年7月時点で確認できたレース場○を登録しています。</p>
+      <div id="topWhiteCategoryTabs" class="top-white-tabs"></div>
+      <div id="whiteFactorGroups" class="top-white-grid"></div>
+      <p class="hint">白因子は「直線・コーナー」「デバフ」「緑○」「その他高効率」の4区分だけで表示します。</p>
     </div>
-  </details>
+  </section>
 
   <section class="panel plan-panel">
     <div class="plan-head">
@@ -149,7 +149,7 @@
   <section class="sheet-card white-sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><small>査定効率の高い順</small><h2>白因子を選択</h2></div>
+      <div><small>4区分・査定効率の高い順</small><h2>白因子を選択</h2></div>
       <button class="close-button" type="button" data-close-white>閉じる</button>
     </div>
     <input id="whiteSearch" class="search-input" type="search" placeholder="例：デルマー、小回り、伏兵、デバフ">

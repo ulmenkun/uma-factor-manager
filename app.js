@@ -1,15 +1,16 @@
 (function(){
 "use strict";
 var cfg=window.AUTO_FACTOR_DATA;
-var KEY="uma-auto-factor-v25";
-var PREV="uma-auto-factor-v24";
+var KEY="uma-auto-factor-v26";
+var PREV="uma-auto-factor-v25";
 var state=load();
 var activeBranch=state.activeBranch||"mile";
 var activeSlot=null;
 var activeSheetTab="candidate";
 var activeFactorTab="skill";
-var whitePickerCategory="全部";
+var whitePickerCategory="直線・コーナー";
 var whiteSort="efficiency";
+var topWhiteCategory="直線・コーナー";
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function allG(){var o={};["芝","ダート","短距離","マイル","中距離","長距離","逃げ","先行","差し","追込"].forEach(function(k){o[k]="G"});return o}
@@ -21,7 +22,7 @@ function defaultSelectedSkills(){
 function defaultState(){
   var target=cfg.targets.jetblack;
   return{
-    version:"2.5",activeBranch:"mile",target:"jetblack",customTarget:"",
+    version:"2.6",activeBranch:"mile",target:"jetblack",customTarget:"",
     initial:clone(target.initial),desired:clone(target.desired),
     selectedSkills:defaultSelectedSkills(),
     onlyOwned:false,owned:{},
@@ -74,6 +75,16 @@ function load(){
 function applyNewCatalogDefaults(){
   cfg.skillCatalog.forEach(function(s){if(s.default&&state.selectedSkills[s.name]===undefined)state.selectedSkills[s.name]=true});
 }
+function applyV26Corrections(){
+  state.corrections=state.corrections||{};
+  if(!state.corrections.v26){
+    if(state.target==="jetblack"){
+      if(state.initial["先行"]==="B")state.initial["先行"]="A";
+      if(state.desired["先行"]==="B")state.desired["先行"]="A";
+    }
+    state.corrections.v26=true;
+  }
+}
 function save(show){
   state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();
   localStorage.setItem(KEY,JSON.stringify(state));
@@ -90,11 +101,10 @@ function up(stars){return stars>=10?4:stars>=7?3:stars>=4?2:stars>=1?1:0}
 function resultRank(base,stars){return cfg.ranks[Math.min(gv(base)+up(stars),cfg.ranks.length-1)]}
 function displayCategory(s){
   var n=s.name||"",c=s.category||"",tags=s.tags||[];
-  if(c.indexOf("デバフ")>=0||tags.indexOf("デバフ")>=0||/(けん制|焦り|ためらい|駆け引き|束縛|ささやき|布石|イーター|目くらまし|かく乱|まなざし|抜け駆け禁止|後方釘付)/.test(n))return"デバフ";
+  if(c.indexOf("デバフ")>=0||tags.indexOf("デバフ")>=0||/(けん制|焦り|ためらい|駆け引き|束縛|ささやき|布石|イーター|目くらまし|かく乱|まなざし|抜け駆け禁止|後方釘付|トリック)/.test(n))return"デバフ";
   if(/(直線○|コーナー○)$/.test(n)&&/(短距離|マイル|中距離|長距離|ダート|逃げ|先行|差し|追込)/.test(n))return"直線・コーナー";
-  if(c.indexOf("回復")>=0)return"回復";
-  if(c.indexOf("緑")>=0||c==="レース場"||c==="回り"||c==="季節"||c==="バ場"||c==="距離条件"||c==="天候")return"緑スキル";
-  return c;
+  if(c.indexOf("緑")>=0||tags.indexOf("緑")>=0||c==="レース場"||c==="回り"||c==="季節"||c==="バ場"||c==="距離条件"||c==="天候")return"緑○";
+  return"その他高効率";
 }
 function compatibilityDefault(b,slot){
   var n=selected(b,slot),prefs=cfg.slots[b].nodes[slot].prefs||[],i=prefs.indexOf(n);
@@ -157,7 +167,12 @@ function combinedForChild(b,child,factorKey,type){
 function effClass(v){return v>=2?"":v>=1.5?"mid":"low"}
 function targetName(){return state.target==="custom"?(state.customTarget||"自由入力ウマ娘"):(cfg.targets[state.target]?cfg.targets[state.target].name:"育成ウマ娘")}
 function targetBaseName(){var n=targetName();return n.indexOf("シンボリクリスエス")>=0?"シンボリクリスエス":n.replace(/^\[[^\]]+\]\s*/,"")}
-function skillMultiplier(s){var t=s.aptitudeType;if(!t)return 1;var r=state.desired[t]||"G";return(r==="A"?1.1:(r==="B"||r==="C"?0.9:(r==="G"?0.7:0.8)))}
+function skillMultiplier(s){
+  if(displayCategory(s)==="デバフ")return 1;
+  var t=s.aptitudeType;if(!t)return 1;
+  var r=state.desired[t]||"G";
+  return(r==="A"||r==="S"?1.1:(r==="B"||r==="C"?0.9:(r==="G"?0.7:0.8)));
+}
 function skillMetrics(s){var ev=s.evaluation||0,m=skillMultiplier(s),adjusted=Math.round(ev*m),eff=s.sp?Math.round(adjusted/s.sp*100)/100:null;return{evaluation:adjusted,efficiency:eff,multiplier:m,verified:!!s.verifiedEvaluation}}
 function efficiencyClass(v){return v>=2?"good":v>=1.5?"":"estimated"}
 function timeKey(r){return r.phase+"|"+r.time}
@@ -216,21 +231,28 @@ function renderAptitudes(){
   document.getElementById("aptitudeGrid").innerHTML=keys.map(function(k){return'<div class="aptitude-row"><b>'+k+'</b><select data-ap="initial" data-key="'+k+'">'+opts(state.initial[k])+'</select><span>→</span><select data-ap="desired" data-key="'+k+'">'+opts(state.desired[k])+'</select></div>'}).join("");
   document.querySelectorAll("[data-ap]").forEach(function(e){e.addEventListener("change",function(){state[e.dataset.ap][e.dataset.key]=e.value;save();renderTree();renderSchedule()})})
 }
+function whiteCategories(){return["直線・コーナー","デバフ","緑○","その他高効率"]}
 function groupedSkills(){
-  var groups={};selectedSkillNames().forEach(function(n){var s=skillByName(n),g=displayCategory(s);groups[g]=groups[g]||[];groups[g].push(s)});return groups
+  var groups={};whiteCategories().forEach(function(g){groups[g]=[]});
+  selectedSkillNames().forEach(function(n){var s=skillByName(n),g=displayCategory(s);groups[g].push(s)});
+  return groups;
 }
 function renderDataStatus(){
   var e=document.getElementById("dataStatus");if(!e)return;
-  e.innerHTML='<strong>スキルデータ確認日：'+esc(cfg.dataVersion||"")+'</strong>登録スキル '+cfg.skillCatalog.length+'件／レース場○ '+(cfg.racecourseSkills||[]).length+'種。査定値は確認済みと推定を区別して表示。';
-  var rc=document.getElementById("racecourseProofList");if(rc)rc.innerHTML=(cfg.racecourseSkills||[]).map(function(n){return'<span class="proof-chip '+((n.indexOf("デルマー")>=0||n.indexOf("サンタアニタ")>=0||n.indexOf("川崎")>=0||n.indexOf("船橋")>=0||n.indexOf("盛岡")>=0)?"special":"")+'">'+esc(n)+'</span>'}).join("");
-  var q=document.getElementById("quickGreenList");if(q)q.innerHTML=(cfg.quickGreenSkills||[]).map(function(n){return'<span class="proof-chip special">'+esc(n)+'</span>'}).join("");
+  e.innerHTML='<strong>スキルデータ確認日：'+esc(cfg.dataVersion||"")+'</strong>登録スキル '+cfg.skillCatalog.length+'件。デバフは脚質適性補正なしで査定効率を計算。';
 }
 function renderSelectedSkills(){
-  var names=selectedSkillNames(),groups=groupedSkills();
+  var names=selectedSkillNames(),groups=groupedSkills(),cats=whiteCategories();
   document.getElementById("whiteSelectionSummary").innerHTML='<b>'+names.length+'個を選択中</b>　数値は目標適性補正後の査定効率。';
-  document.getElementById("whiteFactorGroups").innerHTML=Object.keys(groups).sort().map(function(g){
-    return'<details class="white-group"><summary class="white-group-title"><span>'+esc(g)+'</span><span>'+groups[g].length+'個</span></summary><div class="white-group-chips">'+groups[g].sort(function(a,b){return(skillMetrics(b).efficiency||0)-(skillMetrics(a).efficiency||0)}).map(function(s){var m=skillMetrics(s);return'<label class="factor-chip"><input type="checkbox" data-skill-chip="'+esc(s.name)+'" checked><span>'+esc(s.name)+' <b>'+((m.efficiency||0).toFixed(2))+'</b></span></label>'}).join("")+'</div></details>'
+  document.getElementById("topWhiteCategoryTabs").innerHTML=cats.map(function(g){
+    return'<button type="button" class="top-white-tab '+(topWhiteCategory===g?"active":"")+'" data-top-white-cat="'+esc(g)+'">'+esc(g)+'<small>'+groups[g].length+'個</small></button>'
   }).join("");
+  document.querySelectorAll("[data-top-white-cat]").forEach(function(e){e.addEventListener("click",function(){topWhiteCategory=e.dataset.topWhiteCat;renderSelectedSkills()})});
+  var list=groups[topWhiteCategory].slice().sort(function(a,b){return(skillMetrics(b).efficiency||0)-(skillMetrics(a).efficiency||0)});
+  document.getElementById("whiteFactorGroups").innerHTML=list.length?list.map(function(s){
+    var m=skillMetrics(s),eff=m.efficiency||0;
+    return'<label class="top-skill-chip" title="'+esc(s.name)+'"><input type="checkbox" data-skill-chip="'+esc(s.name)+'" checked><span class="top-skill-name">'+esc(s.name)+'</span><span class="top-skill-eff '+effClass(eff)+'">'+eff.toFixed(2)+'</span></label>'
+  }).join(""):'<div class="top-white-empty">この区分で選択中の白因子はありません。</div>';
   document.querySelectorAll("[data-skill-chip]").forEach(function(e){e.addEventListener("change",function(){state.selectedSkills[e.dataset.skillChip]=false;save();renderSelectedSkills()})})
 }
 function branchTotal(b){return["gp1","gp2","a1","a2","a3","a4"].reduce(function(t,s){return t+star(b,s)},0)}
@@ -340,7 +362,7 @@ function renderOwned(){
   document.getElementById("ownedList").innerHTML=Object.keys(cfg.familyCharacters).sort().map(function(n){return'<label class="owned-item"><input type="checkbox" data-owned="'+esc(n)+'" '+(state.owned[n]?"checked":"")+'><span>'+esc(n)+'</span></label>'}).join("");
   document.querySelectorAll("[data-owned]").forEach(function(e){e.addEventListener("change",function(){state.owned[e.dataset.owned]=e.checked;save();if(state.onlyOwned){rebuild("mile","parent");rebuild("chase","parent");renderTree();renderSchedule()}})})
 }
-function categories(){return["全部"].concat(Array.from(new Set(cfg.skillCatalog.map(displayCategory))).sort())}
+function categories(){return whiteCategories()}
 function renderCategoryTabs(){
   document.getElementById("whiteCategoryTabs").innerHTML=categories().map(function(c){return'<button class="category-tab '+(c===whitePickerCategory?"active":"")+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>'}).join("");
   document.querySelectorAll("[data-cat]").forEach(function(e){e.addEventListener("click",function(){whitePickerCategory=e.dataset.cat;renderWhitePicker()})})
@@ -353,13 +375,13 @@ function renderWhitePicker(){
   document.getElementById("whitePickerList").innerHTML=list.map(function(s){var on=!!state.selectedSkills[s.name],m=skillMetrics(s),featured=(cfg.racecourseSkills||[]).indexOf(s.name)>=0;return'<button title="'+esc(s.name)+'" class="white-pick-row '+(on?"selected ":"")+(featured?"racecourse-featured":"")+'" data-pick="'+esc(s.name)+'"><span class="white-pick-name">'+esc(s.name)+'</span><span class="efficiency-badge '+effClass(m.efficiency||0)+'"><small class="efficiency-caption">効率</small>'+((m.efficiency||0).toFixed(2))+'</span></button>'}).join("");
   document.querySelectorAll("[data-pick]").forEach(function(e){e.addEventListener("click",function(){state.selectedSkills[e.dataset.pick]=!state.selectedSkills[e.dataset.pick];save();renderWhitePicker();renderSelectedSkills()})});renderCategoryTabs()
 }
-function openWhitePicker(){whitePickerCategory="全部";document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")}
+function openWhitePicker(){whitePickerCategory=topWhiteCategory;document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")}
 function closeWhite(){document.getElementById("whitePickerSheet").classList.add("hidden")}
 function renderStorageInfo(){
   var raw=JSON.stringify(state),verify=localStorage.getItem(KEY),ok=verify===raw,when=state.lastSaved?new Date(state.lastSaved).toLocaleString("ja-JP"):"未保存";
   document.getElementById("storageInfo").innerHTML='<strong>Safari内の自動保存：'+(ok?"正常":"要確認")+'</strong>最終保存：'+when+'<br>データ量：約'+Math.ceil(new Blob([raw]).size/1024)+'KB'+(state.lastImport?'<br>最終読込：'+new Date(state.lastImport).toLocaleString("ja-JP"):"")
 }
-function backupFile(){var payload=clone(state);payload.backupMeta={version:"2.5",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v25_バックアップ.json",{type:"application/json"})}
+function backupFile(){var payload=clone(state);payload.backupMeta={version:"2.6",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v26_バックアップ.json",{type:"application/json"})}
 async function shareBackup(){var f=backupFile();if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"因子設計バックアップ"});toast("共有画面を開きました");return}catch(e){if(e.name==="AbortError")return}}downloadBackup()}
 function downloadBackup(){var f=backupFile(),u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);toast("バックアップを作成しました")}
 function renderScenario(){var e=document.getElementById("scenarioMode");if(!e)return;e.innerHTML=(cfg.scenarioModes||[]).map(function(x){return'<option value="'+x.id+'" '+(state.scenarioMode===x.id?'selected':'')+'>'+esc(x.name)+'</option>'}).join("")}
@@ -367,7 +389,7 @@ function selectRecommendedRaces(){var b=activeBranch;state.branches[b].races={};
 function bind(){
   renderTargets();renderScenario();document.getElementById("scenarioMode").addEventListener("change",function(){state.scenarioMode=this.value;save();renderSchedule();renderTree()});document.getElementById("selectRecommendedRacesBtn").addEventListener("click",selectRecommendedRaces);document.getElementById("clearRacesBtn").addEventListener("click",function(){state.branches[activeBranch].races={};save();renderSchedule();renderTree()});document.getElementById("targetCharacter").addEventListener("change",function(){chooseTarget(this.value)});
   document.getElementById("customTargetName").addEventListener("input",function(){state.customTarget=this.value;var id=Object.keys(cfg.targets).find(function(k){return cfg.targets[k].name===state.customTarget});if(id){state.initial=clone(cfg.targets[id].initial);state.desired=clone(cfg.targets[id].desired||cfg.targets[id].initial);renderAptitudes()}save();renderTree()});
-  document.getElementById("openWhitePickerBtn").addEventListener("click",openWhitePicker);document.getElementById("openRacecourseBtn").addEventListener("click",function(){whitePickerCategory="レース場";document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")});document.getElementById("resetWhiteBtn").addEventListener("click",function(){state.selectedSkills=defaultSelectedSkills();save();renderSelectedSkills()});document.getElementById("whiteSearch").addEventListener("input",renderWhitePicker);document.getElementById("whiteSort").addEventListener("change",function(){whiteSort=this.value;renderWhitePicker()});
+  document.getElementById("openWhitePickerBtn").addEventListener("click",openWhitePicker);document.getElementById("resetWhiteBtn").addEventListener("click",function(){state.selectedSkills=defaultSelectedSkills();save();renderSelectedSkills()});document.getElementById("whiteSearch").addEventListener("input",renderWhitePicker);document.getElementById("whiteSort").addEventListener("change",function(){whiteSort=this.value;renderWhitePicker()});
   document.querySelectorAll("[data-close-white]").forEach(function(e){e.addEventListener("click",closeWhite)});document.querySelectorAll("[data-close-node]").forEach(function(e){e.addEventListener("click",closeNode)});
   document.querySelectorAll(".sheet-tab").forEach(function(e){e.addEventListener("click",function(){switchSheetTab(e.dataset.sheetTab)})});document.querySelectorAll(".factor-subtab").forEach(function(e){e.addEventListener("click",function(){switchFactorTab(e.dataset.factorTab)})});
   document.getElementById("assignAllTopBtn").addEventListener("click",function(){selectedSkillNames().forEach(function(n){factorState(activeBranch,activeSlot,n).assigned=true});save("全因子を追加しました");renderSkillFactors();renderTree()});document.getElementById("nodeSkillSearch").addEventListener("input",renderSkillFactors);
@@ -378,5 +400,5 @@ function bind(){
   document.getElementById("importFile").addEventListener("change",function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var obj=JSON.parse(r.result);state=deepMerge(defaultState(),obj);state.lastImport=new Date().toISOString();activeBranch=state.activeBranch||"mile";save();toast("読み込み完了");setTimeout(function(){location.reload()},700)}catch(err){alert("読み込みに失敗しました")}};r.readAsText(f)});
   document.getElementById("resetAllBtn").addEventListener("click",function(){if(confirm("全データを初期化しますか？")){localStorage.removeItem(KEY);location.reload()}})
 }
-applyNewCatalogDefaults();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
+applyNewCatalogDefaults();applyV26Corrections();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
 })();

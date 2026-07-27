@@ -128,3 +128,103 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 @media(max-width:350px){
   .white-picker-list,.node-white-list,.final-inherit-list{grid-template-columns:1fr}
 }
+
+/* Ver.2.6: always-visible four-group white-factor UI */
+.static-panel-title{
+  padding:15px 16px 8px;
+  font-size:18px;
+  font-weight:900;
+}
+.top-white-tabs{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;
+  margin:8px 0;
+}
+.top-white-tab{
+  border:0;
+  border-radius:9px;
+  background:#eef0f4;
+  color:#555e6b;
+  padding:8px 3px;
+  min-width:0;
+  font-size:10px;
+  line-height:1.2;
+  font-weight:900;
+}
+.top-white-tab.active{
+  background:#ece9ff;
+  color:var(--accent);
+  box-shadow:inset 0 0 0 1px #aaa0ef;
+}
+.top-white-tab small{
+  display:block;
+  margin-top:2px;
+  font-size:8px;
+  opacity:.8;
+}
+.top-white-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+}
+.top-skill-chip{
+  display:grid;
+  grid-template-columns:17px minmax(0,1fr) auto;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  border:1px solid #dedfe9;
+  border-radius:10px;
+  background:#fafaff;
+  padding:6px;
+  margin:0;
+}
+.top-skill-chip input{
+  width:15px;
+  height:15px;
+  margin:0;
+  accent-color:var(--accent);
+}
+.top-skill-name{
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:10px;
+  font-weight:850;
+}
+.top-skill-eff{
+  border-radius:999px;
+  background:#e4f5ec;
+  color:#116c43;
+  padding:4px 5px;
+  font-size:9px;
+  font-weight:950;
+}
+.top-skill-eff.mid{background:#fff0cf;color:#8b5a00}
+.top-skill-eff.low{background:#eef0f4;color:#616976}
+.top-white-empty{
+  grid-column:1/-1;
+  border:1px dashed #d6d9e0;
+  border-radius:10px;
+  padding:12px;
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+}
+.category-tabs{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  overflow:visible;
+}
+.category-tab{
+  min-width:0;
+  white-space:normal;
+  padding:7px 3px;
+  font-size:10px;
+  line-height:1.15;
+}
+@media(max-width:370px){
+  .top-white-tab,.category-tab{font-size:9px}
+}
