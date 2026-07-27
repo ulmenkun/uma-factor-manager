@@ -17,7 +17,7 @@ function defaultSelectedSkills(){var out={};cfg.skillCatalog.forEach(function(s)
 function defaultState(){
   var target=cfg.targets.jetblack;
   return{
-    version:"2.9",activeBranch:"mile",target:"jetblack",customTarget:"",
+    version:"3.0",activeBranch:"mile",target:"jetblack",customTarget:"",
     initial:clone(target.initial),desired:clone(target.desired),
     selectedSkills:defaultSelectedSkills(),onlyOwned:false,owned:{},
     branches:{
@@ -50,7 +50,7 @@ function load(){try{var raw=localStorage.getItem(KEY);if(raw)return deepMerge(de
 function applyNewCatalogDefaults(){cfg.skillCatalog.forEach(function(s){if(s.default&&state.selectedSkills[s.name]===undefined)state.selectedSkills[s.name]=true})}
 function applyV26Corrections(){state.corrections=state.corrections||{};if(!state.corrections.v26){if(state.target==="jetblack"){if(state.initial["先行"]==="B")state.initial["先行"]="A";if(state.desired["先行"]==="B")state.desired["先行"]="A"}state.corrections.v26=true}}
 function applyV27Corrections(){state.corrections=state.corrections||{};if(!state.corrections.v27){if(state.target==="jetblack"){state.initial["先行"]="A";state.desired["先行"]="A"}state.corrections.v27=true}}
-function save(show){state.version="2.8";state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));renderStorageInfo();var e=document.getElementById("saveState");if(e){e.textContent="保存済み";clearTimeout(save.t);save.t=setTimeout(function(){e.textContent="自動保存"},900)}if(show)toast(show)}
+function save(show){state.version="3.0";state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));renderStorageInfo();var e=document.getElementById("saveState");if(e){e.textContent="保存済み";clearTimeout(save.t);save.t=setTimeout(function(){e.textContent="自動保存"},900)}if(show)toast(show)}
 function toast(msg){var e=document.getElementById("toast");e.textContent=msg;e.classList.remove("hidden");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.add("hidden")},1800)}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function gv(g){return cfg.ranks.indexOf(g)}
@@ -141,7 +141,7 @@ function renderWhitePicker(){var q=(document.getElementById("whiteSearch").value
 function openWhitePicker(){whitePickerCategory=topWhiteCategory;document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")}
 function closeWhite(){document.getElementById("whitePickerSheet").classList.add("hidden")}
 function renderStorageInfo(){var raw=JSON.stringify(state),verify=localStorage.getItem(KEY),ok=verify===raw,when=state.lastSaved?new Date(state.lastSaved).toLocaleString("ja-JP"):"未保存";document.getElementById("storageInfo").innerHTML='<strong>Safari内の自動保存：'+(ok?"正常":"要確認")+'</strong>最終保存：'+when+'<br>データ量：約'+Math.ceil(new Blob([raw]).size/1024)+'KB'+(state.lastImport?'<br>最終読込：'+new Date(state.lastImport).toLocaleString("ja-JP"):"")}
-function backupFile(){var payload=clone(state);payload.backupMeta={version:"2.9",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v29_バックアップ.json",{type:"application/json"})}
+function backupFile(){var payload=clone(state);payload.backupMeta={version:"3.0",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v30_バックアップ.json",{type:"application/json"})}
 async function shareBackup(){var f=backupFile();if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"因子設計バックアップ"});toast("共有画面を開きました");return}catch(e){if(e.name==="AbortError")return}}downloadBackup()}
 function downloadBackup(){var f=backupFile(),u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);toast("バックアップを作成しました")}
 function renderScenario(){var e=document.getElementById("scenarioMode");if(!e)return;e.innerHTML=(cfg.scenarioModes||[]).map(function(x){return'<option value="'+x.id+'" '+(state.scenarioMode===x.id?'selected':'')+'>'+esc(x.name)+'</option>'}).join("")}

@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
   <title>技能試験・自動因子設計</title>
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.9 試作</span>
+    <span class="version">Ver.3.0</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -72,9 +72,16 @@
     <div id="supportCoverageSummary" class="selection-summary"></div>
     <div id="supportDeck" class="support-deck"></div>
     <details class="support-editor">
-      <summary>所持サポカ・取得可能因子を編集</summary>
-      <div class="support-editor-actions"><button id="addSupportCardBtn" type="button">サポカを追加</button></div>
-      <p class="hint">初期登録は編集用テンプレートです。カード名・タイプ・取得可能スキルを手持ちに合わせて変更してください。</p>
+      <summary>所持サポカを選択・実データを確認</summary>
+      <div class="support-library-toolbar">
+        <input id="supportSearch" type="search" placeholder="カード名・スキル検索">
+        <select id="supportRarityFilter"><option value="ALL">SSR・SR</option><option value="SSR">SSRのみ</option><option value="SR">SRのみ</option></select>
+        <select id="supportTypeFilter"><option value="ALL">全タイプ</option><option>スピード</option><option>スタミナ</option><option>パワー</option><option>根性</option><option>賢さ</option></select>
+        <label class="switch-row compact"><input id="supportNeededOnly" type="checkbox"><span>必要因子を持つカードのみ</span></label>
+        <span id="supportFilterCount" class="support-filter-count"></span>
+      </div>
+      <div class="support-editor-actions"><button id="addSupportCardBtn" type="button">手動サポカを追加</button><button id="restoreSupportDataBtn" class="mini-button ghost" type="button">実データを再読込</button></div>
+      <p class="hint">因子周回・高効率スキル向けに絞ったSSR／SR実データです。所持にチェックすると、登録済みのヒント・イベント取得スキルが自動的に編成候補へ入ります。</p>
       <div id="supportCatalog" class="support-catalog"></div>
     </details>
   </section>
@@ -199,8 +206,8 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=29"></script>
-<script src="app.js?v=29"></script>
-<script src="features-v29.js?v=29"></script>
+<script src="data.js?v=30"></script>
+<script src="app.js?v=30"></script>
+<script src="features-v30.js?v=30"></script>
 </body>
 </html>
