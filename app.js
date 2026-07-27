@@ -1,8 +1,8 @@
 (function(){
 "use strict";
 var cfg=window.AUTO_FACTOR_DATA;
-var KEY="uma-auto-factor-v22";
-var PREV="uma-auto-factor-v21";
+var KEY="uma-auto-factor-v23";
+var PREV="uma-auto-factor-v22";
 var state=load();
 var activeBranch=state.activeBranch||"mile";
 var activeSlot=null;
@@ -55,6 +55,9 @@ function migrate(old){
   if(old.whiteOverrides){
     Object.keys(old.whiteOverrides).forEach(function(name){fresh.selectedSkills[name]=old.whiteOverrides[name]});
   }
+  if(old.selectedSkills){
+    Object.keys(old.selectedSkills).forEach(function(name){fresh.selectedSkills[name]=old.selectedSkills[name]});
+  }
   return fresh;
 }
 function load(){
@@ -63,6 +66,9 @@ function load(){
     var prev=localStorage.getItem(PREV);if(prev)return migrate(JSON.parse(prev));
   }catch(e){}
   return defaultState();
+}
+function applyNewCatalogDefaults(){
+  cfg.skillCatalog.forEach(function(s){if(s.default&&state.selectedSkills[s.name]===undefined)state.selectedSkills[s.name]=true});
 }
 function save(show){
   state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();
@@ -126,6 +132,10 @@ function renderAptitudes(){
 }
 function groupedSkills(){
   var groups={};selectedSkillNames().forEach(function(n){var s=skillByName(n),g=s.category;groups[g]=groups[g]||[];groups[g].push(s)});return groups
+}
+function renderDataStatus(){
+  var e=document.getElementById('dataStatus');if(!e)return;
+  e.innerHTML='<strong>スキルデータ確認日：'+esc(cfg.dataVersion||'')+'</strong>登録スキル '+cfg.skillCatalog.length+'件／レース場○ 17種。<br>'+esc((cfg.dataSources||[]).join('・'));
 }
 function renderSelectedSkills(){
   var names=selectedSkillNames(),groups=groupedSkills();
@@ -246,5 +256,5 @@ function bind(){
   document.getElementById("importFile").addEventListener("change",function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var obj=JSON.parse(r.result);state=deepMerge(defaultState(),obj);state.lastImport=new Date().toISOString();activeBranch=state.activeBranch||"mile";save();toast("読み込み完了");setTimeout(function(){location.reload()},700)}catch(err){alert("読み込みに失敗しました")}};r.readAsText(f)});
   document.getElementById("resetAllBtn").addEventListener("click",function(){if(confirm("全データを初期化しますか？")){localStorage.removeItem(KEY);location.reload()}})
 }
-ensure();bind();renderAptitudes();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
+applyNewCatalogDefaults();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save();
 })();

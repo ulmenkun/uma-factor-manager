@@ -43,3 +43,5 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .toast{position:fixed;left:50%;bottom:calc(25px + env(safe-area-inset-bottom));z-index:80;transform:translateX(-50%);background:#22242c;color:#fff;border-radius:999px;padding:10px 15px;font-size:12px;font-weight:800;box-shadow:0 5px 20px rgba(0,0,0,.25)}.toast.hidden{display:none}
 
 @media(max-width:390px){.aptitude-grid{grid-template-columns:1fr}.tree-level.ancestors{gap:4px}.tree-node{padding:7px 3px}.node-name{font-size:10px}.node-star,.node-score{font-size:8px;padding:3px 4px}.race-row{grid-template-columns:21px 54px 1fr auto}.factor-toolbar{grid-template-columns:1fr}}
+
+.data-status{border:1px solid #cfe5d9;background:#effaf4;border-radius:12px;padding:10px;margin-bottom:8px;font-size:11px;line-height:1.55;color:#235f43}.data-status strong{display:block;font-size:13px;color:#15774a}
