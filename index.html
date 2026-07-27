@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.4 試作</span>
+    <span class="version">Ver.2.5 試作</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -64,7 +64,7 @@
       <div><small>最終開始時</small><strong id="finalAptitude">-</strong></div>
     </div>
 
-    <div id="familyTree" class="family-tree"></div><div id="g1StageSummary" class="g1-stage-summary"></div>
+    <div id="familyTree" class="family-tree"></div><div id="g1StageSummary" class="g1-stage-summary"></div><details class="final-inherit-box"><summary>最終育成への同名因子・父母合算確率</summary><div id="finalInheritanceSummary" class="final-inherit-list"></div></details>
     <div class="tree-help">各カード：候補変更／赤因子★／スキル因子／レース因子</div>
   </section>
 
@@ -124,6 +124,7 @@
     </div>
 
     <div id="factorPane" class="sheet-pane hidden">
+      <div id="nodeCompatibilityPanel" class="compatibility-panel"></div>
       <div class="factor-subtabs">
         <button class="factor-subtab active" data-factor-tab="skill" type="button">スキル因子</button>
         <button class="factor-subtab" data-factor-tab="race" type="button">レース因子</button>
@@ -148,11 +149,11 @@
   <section class="sheet-card white-sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><small>実在スキル候補</small><h2>白因子を選択</h2></div>
+      <div><small>査定効率の高い順</small><h2>白因子を選択</h2></div>
       <button class="close-button" type="button" data-close-white>閉じる</button>
     </div>
     <input id="whiteSearch" class="search-input" type="search" placeholder="例：デルマー、小回り、伏兵、デバフ">
-    <div class="picker-sort"><label>並び順<select id="whiteSort"><option value="efficiency">査定コスパ順</option><option value="priority">おすすめ順</option><option value="name">名前順</option></select></label><span id="pickerCount"></span></div>
+    <div class="picker-sort"><label>並び順<select id="whiteSort"><option value="efficiency">査定効率順</option><option value="name">名前順</option></select></label><span id="pickerCount"></span></div>
     <div id="whiteCategoryTabs" class="category-tabs"></div>
     <div id="whitePickerList" class="white-picker-list"></div>
   </section>

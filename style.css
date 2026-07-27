@@ -57,3 +57,74 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .skill-metrics{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.metric{border-radius:999px;background:#eef0f5;color:#4f5865;padding:4px 6px;font-size:9px;font-weight:900}.metric.good{background:#e5f5ec;color:#127046}.metric.estimated{background:#fff3d6;color:#8b5b00}
 .white-pick-row.racecourse-featured{border:2px solid #8477ec;background:#faf9ff}.goal-data-note{font-size:9px;color:#6c7380;margin-top:3px}
 @media(max-width:390px){.scenario-control{grid-template-columns:1fr}.g1-stage-summary{grid-template-columns:1fr 1fr}}
+
+/* Ver.2.5 compact skill UI */
+.white-picker-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.white-pick-row{
+  min-height:58px;display:grid;grid-template-columns:minmax(0,1fr) auto;
+  gap:5px;padding:8px;text-align:left;align-items:center
+}
+.white-pick-name{font-size:12px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.white-pick-meta,.skill-metrics,.white-priority{display:none!important}
+.efficiency-badge{
+  min-width:42px;border-radius:10px;padding:7px 5px;text-align:center;
+  background:#e6f5ed;color:#147248;font-size:13px;font-weight:950;line-height:1
+}
+.efficiency-badge.mid{background:#fff0cf;color:#976000}
+.efficiency-badge.low{background:#eef0f4;color:#656d78}
+.efficiency-caption{display:block;font-size:8px;font-weight:800;margin-bottom:2px;opacity:.8}
+
+.node-white-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.node-white-row{padding:7px;min-width:0}
+.node-white-top{grid-template-columns:19px minmax(0,1fr) auto;gap:5px}
+.node-white-top input{width:17px;height:17px}
+.node-white-name{font-size:11px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.skill-meta{display:none}
+.white-star-row{padding-left:0;margin-top:6px;gap:3px;flex-wrap:wrap}
+.white-star-row label{font-size:9px;margin:0;display:flex;align-items:center;gap:2px}
+.white-star-row label input{width:15px;height:15px}
+.white-star-row>span{font-size:8px;margin:0}
+.white-star-row button{padding:4px 5px;font-size:9px}
+.factor-prob-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.factor-prob-row span{border-radius:999px;padding:4px 6px;font-size:8px;font-weight:900;background:#eef0f4;color:#626a75}
+.factor-prob-row .combined{background:#e6f5ed;color:#147248}
+.factor-prob-row .both{background:#eceaff;color:#5748d8}
+
+.compatibility-panel{
+  display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+  border:1px solid #d9d4fb;background:#faf9ff;border-radius:12px;padding:9px;margin-bottom:9px
+}
+.compatibility-panel label{margin:0;font-size:11px}
+.compatibility-panel input{width:72px;padding:7px;font-size:14px}
+.compatibility-total{text-align:right}
+.compatibility-total small{display:block;color:#6c7380;font-size:9px}
+.compatibility-total strong{font-size:17px;color:#5748d8}
+
+.node-compat{
+  display:block;margin-top:5px;border-radius:7px;padding:4px 3px;
+  background:#f0eefc;color:#5748d8;font-size:8px;font-weight:900;white-space:nowrap
+}
+.node-compat.high{background:#e4f5ec;color:#147248}
+.node-compat.mid{background:#fff0cf;color:#976000}
+
+.g1-stage-summary{grid-template-columns:repeat(3,1fr)}
+.stage-card strong{font-size:13px}
+.stage-breakdown{display:block;font-size:9px;color:#6c7380;margin-top:2px}
+
+.final-inherit-box{margin-top:9px;border:1px solid #dfe2e9;border-radius:12px;background:#fff}
+.final-inherit-box>summary{padding:10px;font-size:12px;font-weight:900;list-style:none}
+.final-inherit-box>summary:after{content:"＋";float:right;color:#5748d8}
+.final-inherit-box[open]>summary:after{content:"−"}
+.final-inherit-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0 8px 8px}
+.final-inherit-item{border:1px solid #e1e4e9;border-radius:10px;padding:7px;min-width:0}
+.final-inherit-name{font-size:10px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.final-inherit-value{font-size:15px;font-weight:950;color:#147248;margin-top:3px}
+.final-inherit-detail{font-size:8px;color:#6c7380;margin-top:2px}
+
+.category-tab{font-size:10px;padding:6px 9px}
+.white-group-title{font-size:12px}
+.factor-chip{font-size:10px;padding:5px 7px}
+
+@media(max-width:350px){
+  .white-picker-list,.node-white-list,.final-inherit-list{grid-template-columns:1fr}
+}
