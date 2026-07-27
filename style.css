@@ -232,3 +232,5 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .loading-note{grid-column:1/-1;padding:10px;text-align:center;color:var(--muted);font-size:12px}
 .sheet-card{touch-action:pan-y}
 .close-button{position:relative;z-index:4;min-width:64px;min-height:42px}
+.final-g1-summary small{display:block;margin-top:3px;font-size:9px;color:#d8d9df;white-space:nowrap}
+.tree-node.target .node-compat{margin-top:6px;background:#3b3d4a;color:#ffe27a}
