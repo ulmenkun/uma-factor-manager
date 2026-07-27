@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.2.3 試作</span>
+    <span class="version">Ver.2.4 試作</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -35,7 +35,9 @@
           <button id="resetWhiteBtn" class="mini-button ghost" type="button">初期選択へ戻す</button>
         </div>
       </div>
-      <div id="dataStatus" class="data-status"></div><div id="whiteSelectionSummary" class="selection-summary"></div>
+      <div id="dataStatus" class="data-status"></div>
+      <div class="racecourse-proof"><div class="racecourse-proof-head"><strong>レース場○ 17種</strong><button id="openRacecourseBtn" class="mini-button" type="button">レース場だけ表示</button></div><div id="racecourseProofList" class="racecourse-proof-list"></div><div id="quickGreenList" class="racecourse-proof-list quick-green"></div></div>
+      <div id="whiteSelectionSummary" class="selection-summary"></div>
       <div id="whiteFactorGroups"></div>
       <p class="hint">川崎・船橋・盛岡・ロンシャン・サンタアニタパーク・デルマーを含む、2026年7月時点で確認できたレース場○を登録しています。</p>
     </div>
@@ -55,13 +57,14 @@
       <button class="tab" data-branch="chase" type="button">追込側</button>
     </div>
 
+    <div class="scenario-control"><label>育成シナリオ<select id="scenarioMode"></select></label><div id="finalG1Summary" class="final-g1-summary"></div></div>
     <div class="tree-summary">
       <div><small>赤因子合計</small><strong id="branchStarTotal">0★</strong></div>
       <div><small>遺伝子条件</small><strong id="geneCondition">あと12★</strong></div>
       <div><small>最終開始時</small><strong id="finalAptitude">-</strong></div>
     </div>
 
-    <div id="familyTree" class="family-tree"></div>
+    <div id="familyTree" class="family-tree"></div><div id="g1StageSummary" class="g1-stage-summary"></div>
     <div class="tree-help">各カード：候補変更／赤因子★／スキル因子／レース因子</div>
   </section>
 
@@ -72,7 +75,8 @@
         <span class="legend-factor">因子あり</span>
         <span class="legend-none">因子なし・共通G1用</span>
       </div>
-      <p class="hint">勝利チェックは共通G1ボーナスの計画用です。効果欄にレース因子の効果も表示します。</p>
+      <div class="schedule-actions"><button id="selectRecommendedRacesBtn" type="button">おすすめG1を自動選択</button><button id="clearRacesBtn" type="button">全解除</button></div>
+      <p class="hint">同じターンは1レースだけ選択できます。全勝した想定で、適性不足と育成目標・シナリオ競合を自動で除外します。</p>
       <div id="raceSchedule"></div>
     </div>
   </details>
@@ -147,7 +151,8 @@
       <div><small>実在スキル候補</small><h2>白因子を選択</h2></div>
       <button class="close-button" type="button" data-close-white>閉じる</button>
     </div>
-    <input id="whiteSearch" class="search-input" type="search" placeholder="例：伏兵、逃げ、短距離、デバフ">
+    <input id="whiteSearch" class="search-input" type="search" placeholder="例：デルマー、小回り、伏兵、デバフ">
+    <div class="picker-sort"><label>並び順<select id="whiteSort"><option value="efficiency">査定コスパ順</option><option value="priority">おすすめ順</option><option value="name">名前順</option></select></label><span id="pickerCount"></span></div>
     <div id="whiteCategoryTabs" class="category-tabs"></div>
     <div id="whitePickerList" class="white-picker-list"></div>
   </section>
