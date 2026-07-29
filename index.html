@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
   <title>技能試験・自動因子設計</title>
-  <link rel="stylesheet" href="style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.3.3</span>
+    <span class="version">Ver.3.4</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <div class="header-status"><span id="dataUpdateBadge" class="data-update-badge">最新確認</span><span id="saveState" class="save-state">自動保存</span></div>
@@ -113,39 +113,18 @@
     <div class="plan-head">
       <div>
         <h2>最新サポカ・スキルデータ</h2>
-        <p>ボタンからGitHub Actionsを起動し、GameToraの公開データを収集して更新パックを作成します。</p>
+        <p>個人情報やGitHubトークンを入力せず、公開済みの最新データとの差分を確認します。</p>
       </div>
-      <button id="collectLatestDataBtn" class="auto-button collect-button" type="button">Webから自動収集して更新</button>
-    </div>
-    <div id="collectionStatus"></div>
-    <div class="update-secondary-actions">
-      <button id="checkDataUpdateBtn" class="mini-button" type="button">作成済みデータだけ確認</button>
-      <button id="applyDataUpdateBtn" class="auto-button hidden" type="button">この更新を適用</button>
-      <label class="import-button">更新JSONを読み込む<input id="dataUpdateFile" type="file" accept=".json,application/json"></label>
+      <button id="checkDataUpdateBtn" class="auto-button update-check-button" type="button">最新データを確認</button>
     </div>
     <div id="dataUpdateStatus"></div>
-    <div class="update-switches">
-      <label class="switch-row"><input id="autoApplyCollected" type="checkbox"><span>収集完了後、そのまま自動適用</span></label>
-      <label class="switch-row"><input id="autoCheckUpdates" type="checkbox"><span>1日1回、作成済みデータを確認</span></label>
+    <div class="update-actions">
+      <button id="applyDataUpdateBtn" class="auto-button hidden" type="button">この更新を適用</button>
+      <label class="import-button">更新JSONを読み込む<input id="dataUpdateFile" type="file" accept=".json,application/json"></label>
+      <button id="resetOnlineDataBtn" class="mini-button ghost" type="button">本体同梱データへ戻す</button>
     </div>
-    <details class="update-advanced" id="githubUpdateSettings">
-      <summary>初回設定・GitHub連携</summary>
-      <div class="github-setting-grid">
-        <label>GitHubユーザー名<input id="githubOwner" type="text" autocomplete="username" placeholder="ulmenkun"></label>
-        <label>リポジトリ名<input id="githubRepo" type="text" placeholder="uma-factor-manager"></label>
-        <label>ブランチ<input id="githubBranch" type="text" placeholder="main"></label>
-        <label>ワークフロー<input id="githubWorkflow" type="text" placeholder="update-uma-data.yml"></label>
-      </div>
-      <label class="github-token-label">GitHubトークン
-        <span class="token-input-row"><input id="githubToken" type="password" autocomplete="off" placeholder="github_pat_..."><button id="toggleGithubToken" class="mini-button ghost" type="button">表示</button></span>
-      </label>
-      <label class="switch-row token-save-row"><input id="rememberGithubToken" type="checkbox"><span>この端末のSafariにトークンを保存する</span></label>
-      <p class="hint">初回のみ、対象リポジトリ限定のFine-grained tokenを作り、権限を <b>Actions: Read and write</b> にします。トークンはGitHub API以外へ送信せず、バックアップにも含めません。</p>
-      <p class="hint">リポジトリ側は <code>Settings → Actions → General → Workflow permissions → Read and write permissions</code> にしてください。</p>
-      <hr class="update-divider">
-      <label class="update-url-label">作成済み更新パックURL<input id="dataUpdateUrl" type="url" inputmode="url" placeholder="data/latest-data-pack.json"></label>
-      <div class="advanced-button-row"><button id="saveGithubSettingsBtn" class="mini-button" type="button">連携設定を保存</button><button id="resetOnlineDataBtn" class="mini-button ghost" type="button">本体同梱データへ戻す</button></div>
-    </details>
+    <label class="switch-row update-auto-check"><input id="autoCheckUpdates" type="checkbox"><span>1日1回、ページを開いた時に自動確認</span></label>
+    <p class="hint update-safety-note">更新データはGitHub Actionsで毎日1回作成されます。このページからGitHubアカウントへログインしたり、トークンを保存したりすることはありません。</p>
   </section>
   <section class="panel backup-panel">
     <h2>保存・バックアップ</h2>
@@ -256,12 +235,12 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=33"></script>
-<script src="support-data-v31.js?v=33"></script>
-<script src="data/latest-data-pack.js?v=33"></script>
-<script src="data-update-bootstrap.js?v=33"></script>
-<script src="app.js?v=33"></script>
-<script src="features-v31.js?v=33"></script>
-<script src="data-updater-ui.js?v=33"></script>
+<script src="data.js?v=34"></script>
+<script src="support-data-v31.js?v=34"></script>
+<script src="data/latest-data-pack.js?v=34"></script>
+<script src="data-update-bootstrap.js?v=34"></script>
+<script src="app.js?v=34"></script>
+<script src="features-v31.js?v=34"></script>
+<script src="data-updater-ui.js?v=34"></script>
 </body>
 </html>
