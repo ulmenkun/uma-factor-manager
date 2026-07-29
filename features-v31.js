@@ -54,7 +54,7 @@ function ensurePlan(key){
   state.support.plans[key]=p;return p;
 }
 function ensureV31(){
-  ensureScenario();state.version="3.1";
+  ensureScenario();state.version="3.2";
   ["mile","chase"].forEach(function(b){var br=state.branches[b];br.redTypes=br.redTypes||{};SLOTS.forEach(function(s){if(!br.redTypes[s])br.redTypes[s]=cfg.slots[b].target})});
   state.support=state.support||{};
   var oldDeck=Array.isArray(state.support.deck)?state.support.deck.slice(0,6):null;
