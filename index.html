@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
   <title>技能試験・自動因子設計</title>
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.3.0</span>
+    <span class="version">Ver.3.1</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <span id="saveState" class="save-state">自動保存</span>
@@ -68,7 +68,12 @@
       </div>
       <button id="autoSupportDeckBtn" class="auto-button" type="button">自動編成</button>
     </div>
-    <div class="scenario-control support-scenario"><label>育成シナリオ<select id="scenarioMode"></select></label><div id="finalG1Summary" class="final-g1-summary"></div></div>
+    <div class="support-plan-controls">
+      <label>編成するウマ娘<select id="supportPlanTarget"></select></label>
+      <label>育成シナリオ<select id="scenarioMode"></select></label>
+    </div>
+    <div id="supportPlanInfo" class="support-plan-info"></div>
+    <div class="scenario-control support-scenario"><div id="finalG1Summary" class="final-g1-summary"></div></div>
     <div id="supportCoverageSummary" class="selection-summary"></div>
     <div id="supportDeck" class="support-deck"></div>
     <details class="support-editor">
@@ -76,12 +81,12 @@
       <div class="support-library-toolbar">
         <input id="supportSearch" type="search" placeholder="カード名・スキル検索">
         <select id="supportRarityFilter"><option value="ALL">SSR・SR</option><option value="SSR">SSRのみ</option><option value="SR">SRのみ</option></select>
-        <select id="supportTypeFilter"><option value="ALL">全タイプ</option><option>スピード</option><option>スタミナ</option><option>パワー</option><option>根性</option><option>賢さ</option></select>
+        <select id="supportTypeFilter"><option value="ALL">全タイプ</option><option>スピード</option><option>スタミナ</option><option>パワー</option><option>根性</option><option>賢さ</option><option>友人</option><option>グループ</option><option>不明</option></select>
         <label class="switch-row compact"><input id="supportNeededOnly" type="checkbox"><span>必要因子を持つカードのみ</span></label>
         <span id="supportFilterCount" class="support-filter-count"></span>
       </div>
       <div class="support-editor-actions"><button id="addSupportCardBtn" type="button">手動サポカを追加</button><button id="restoreSupportDataBtn" class="mini-button ghost" type="button">実データを再読込</button></div>
-      <p class="hint">因子周回・高効率スキル向けに絞ったSSR／SR実データです。所持にチェックすると、登録済みのヒント・イベント取得スキルが自動的に編成候補へ入ります。</p>
+      <p class="hint">直近1年半のSSR全件＋因子周回向け旧SSR／SRを収録しています。所持にチェックすると、登録済みのヒント・イベント取得スキルが自動的に編成候補へ入ります。</p>
       <div id="supportCatalog" class="support-catalog"></div>
     </details>
   </section>
@@ -173,13 +178,20 @@
     <div id="targetStats" class="target-stats"></div>
     <div class="target-extra-row">
       <label>固有スキルLv<select id="uniqueSkillLevel"></select></label>
-      <label>技能試験ボーナス<input id="trialBonus" type="number" min="0" step="1"></label>
+      <label>その他技能試験ボーナス<input id="trialBonus" type="number" min="0" step="1"></label>
       <label>その他評価点<input id="extraEvaluation" type="number" min="0" step="1"></label>
+    </div>
+    <div class="section-heading">技能試験のレース実績</div>
+    <div class="race-count-grid">
+      <label>G1勝利数<input id="trialRaceG1" type="number" min="0" step="1" value="0"></label>
+      <label>G2勝利数<input id="trialRaceG2" type="number" min="0" step="1" value="0"></label>
+      <label>G3勝利数<input id="trialRaceG3" type="number" min="0" step="1" value="0"></label>
+      <label>OP以下勝利数<input id="trialRaceOP" type="number" min="0" step="1" value="0"></label>
     </div>
     <div class="section-heading row-heading"><span>取得スキル・ヒントLv</span><span class="hint">ヒントLv表示をタップすると0→5で切替</span></div>
     <div class="skill-point-tools">
       <label>使用可能スキルPt<input id="availableSkillPoints" type="number" min="0" step="1"></label>
-      <button id="autoAllocateSkillsBtn" class="auto-button" type="button">最高効率で自動振分</button>
+      <button id="autoAllocateSkillsBtn" class="auto-button" type="button">技能試験ポイント最大で自動振分</button>
       <button id="clearTargetSkillsBtn" class="mini-button ghost" type="button">取得チェック解除</button>
     </div>
     <div id="targetSkillTotals" class="selection-summary"></div>
@@ -195,19 +207,20 @@
   <section class="sheet-card white-sheet-card">
     <div class="sheet-handle"></div>
     <div class="sheet-head">
-      <div><small>4区分・査定効率の高い順</small><h2>白因子を選択</h2></div>
+      <div><small>4区分・技能試験効率の高い順</small><h2>白因子を選択</h2></div>
       <button class="close-button" type="button" data-close-white>閉じる</button>
     </div>
     <input id="whiteSearch" class="search-input" type="search" placeholder="例：デルマー、小回り、伏兵、デバフ">
-    <div class="picker-sort"><label>並び順<select id="whiteSort"><option value="efficiency">査定効率順</option><option value="name">名前順</option></select></label><span id="pickerCount"></span></div>
+    <div class="picker-sort"><label>並び順<select id="whiteSort"><option value="efficiency">技能試験効率順</option><option value="name">名前順</option></select></label><span id="pickerCount"></span></div>
     <div id="whiteCategoryTabs" class="category-tabs"></div>
     <div id="whitePickerList" class="white-picker-list"></div>
   </section>
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=30"></script>
-<script src="app.js?v=30"></script>
-<script src="features-v30.js?v=30"></script>
+<script src="data.js?v=31"></script>
+<script src="support-data-v31.js?v=31"></script>
+<script src="app.js?v=31"></script>
+<script src="features-v31.js?v=31"></script>
 </body>
 </html>

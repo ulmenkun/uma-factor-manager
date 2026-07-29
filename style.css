@@ -251,3 +251,31 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .support-skills .hint-source{background:#edf5ff}.support-skills .event-source{background:#ecfaef}.support-skills.gold-skills span{background:#fff3cc;color:#715600}
 .support-edit-fields{display:grid;grid-template-columns:80px minmax(100px,1fr) minmax(120px,1fr) 110px;gap:7px;margin-top:9px}.support-edit-fields textarea{grid-column:1/5;width:100%;resize:vertical}.support-card-actions{grid-column:1/5;display:flex;gap:7px;justify-content:flex-end}
 @media(max-width:850px){.support-catalog{grid-template-columns:1fr}.support-library-toolbar{grid-template-columns:1fr 1fr}.support-library-toolbar input{grid-column:1/3}.support-filter-count{grid-column:1/3}.support-edit-fields{grid-template-columns:1fr 1fr}.support-edit-fields textarea,.support-card-actions{grid-column:1/3}}
+
+/* Ver.3.1: per-Uma support plans and type colors */
+.support-plan-controls{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:10px;margin:12px 0}
+.support-plan-controls label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#5b6170}
+.support-plan-controls select{width:100%;min-width:0}
+.support-plan-info{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 11px;margin-bottom:8px;border:1px solid #ddd9f8;border-radius:12px;background:#f8f7ff;font-size:12px}
+.support-plan-info b{font-size:13px;color:#3f379a}
+.support-slot,.support-edit-card{border-left:5px solid #c7cad1}
+.support-slot.type-speed,.support-edit-card.type-speed{background:#eef8ff;border-left-color:#83cfff}
+.support-slot.type-stamina,.support-edit-card.type-stamina{background:#effbf1;border-left-color:#7dd397}
+.support-slot.type-power,.support-edit-card.type-power{background:#fff4ed;border-left-color:#f3a06d}
+.support-slot.type-guts,.support-edit-card.type-guts{background:#fff0f5;border-left-color:#eb8fb1}
+.support-slot.type-wisdom,.support-edit-card.type-wisdom{background:#f4f0ff;border-left-color:#a68ce7}
+.support-slot.type-friend,.support-edit-card.type-friend{background:#fffbea;border-left-color:#e7c453}
+.support-slot.type-group,.support-edit-card.type-group{background:#edfafa;border-left-color:#65c5c5}
+.support-slot.type-unknown,.support-edit-card.type-unknown{background:#f5f5f6;border-left-color:#aeb2ba}
+.support-card-sub{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin:3px 0 7px;color:#737988;font-size:10px}
+.gold-chip,.gold-source{background:#fff0b8!important;border-color:#dfb83c!important;color:#765400!important}
+.target-skill-row.gold-row{background:#fffaf0;border-color:#ead193}
+.skill-grade{display:inline-flex;align-items:center;justify-content:center;min-width:25px;padding:2px 5px;margin-right:5px;border-radius:999px;font-size:10px;font-weight:800;background:#e8ebef;color:#59606e}
+.skill-grade.gold{background:#ffe39a;color:#765000}
+.skill-grade.evolved{background:#ecd8ff;color:#673896}
+.target-skill-row>small{display:block;grid-column:1/-1;color:#747a88;font-size:10px;padding-left:26px}
+.target-stats label small{display:block;margin-top:3px;color:#6d7482;font-size:9px;font-weight:500}
+.race-count-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.race-count-grid label{display:grid;gap:4px;font-size:11px;font-weight:700;color:#5f6573}
+.race-count-grid input{width:100%;min-width:0}
+@media(max-width:700px){.support-plan-controls{grid-template-columns:1fr}.race-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
