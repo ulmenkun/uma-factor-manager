@@ -1,0 +1,46 @@
+name: Update Uma support and skill data (multi-source)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 20 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uma-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/requirements-update.txt
+      - name: Install updater
+        run: |
+          python -m pip install -r tools/requirements-update.txt
+          python -m playwright install --with-deps chromium
+      - name: Collect current multi-source data
+        env:
+          UMA_FORCE_REFRESH: "1"
+          UMA_REFRESH_EXISTING: "120"
+          UMA_MAX_DETAIL_PAGES: "120"
+        run: python tools/update_data.py
+      - name: Commit changed data
+        run: |
+          if git diff --quiet -- data/latest-data-pack.json data/latest-data-pack.js; then
+            echo "No data changes"
+            exit 0
+          fi
+          git config user.name "uma-data-bot"
+          git config user.email "uma-data-bot@users.noreply.github.com"
+          git add data/latest-data-pack.json data/latest-data-pack.js
+          git commit -m "data: collect latest support cards and skills"
+          git push
