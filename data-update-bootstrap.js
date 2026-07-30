@@ -59,6 +59,13 @@
   };
   var stored=null;
   try{stored=JSON.parse(localStorage.getItem(PACK_KEY)||"null")}catch(e){localStorage.removeItem(PACK_KEY)}
+  // A previously applied online pack must not hide a newer bundled release.
+  // This is especially important when the app itself contains corrected card data.
+  if(stored&&bundled){
+    var storedTime=Date.parse(stored.generatedAt||"")||0;
+    var bundledTime=Date.parse(bundled.generatedAt||"")||0;
+    if(bundledTime>storedTime){stored=null;try{localStorage.removeItem(PACK_KEY)}catch(e){}}
+  }
   if(!applyPack(stored)){
     window.UMA_ACTIVE_DATA_PACK_META={
       version:window.UMA_BUILTIN_DATA_PACK_META.version,

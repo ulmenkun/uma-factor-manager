@@ -295,3 +295,14 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .update-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:10px}.update-actions .import-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 13px;border:1px solid #d7d9e4;border-radius:11px;background:#fff;color:#4f5564;font-size:12px;font-weight:800;cursor:pointer}
 .update-auto-check{margin-top:10px!important;padding:10px 11px;border:1px solid #e0e1e9;border-radius:11px;background:#fff}.update-safety-note{margin-top:9px}
 @media(max-width:650px){.header-status{gap:5px}.data-update-badge{font-size:9px;padding:3px 7px}.update-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.update-actions>*{width:100%}.update-check-button{width:100%;min-width:0}}
+
+/* Ver.3.5: privacy-friendly approximate visitor signal */
+.visitor-stats-panel summary{font-weight:800;color:#4f46c8}
+.visitor-stats-panel .panel-body{padding-top:14px}
+.visitor-count-card{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 14px;padding:16px;border:1px solid #dddaf8;border-radius:16px;background:#faf9ff}
+.visitor-count-card small{grid-column:1;font-weight:700;color:#555}
+.visitor-count-card strong{grid-column:1;font-size:34px;line-height:1;color:#5146d8}
+.visitor-count-card span{grid-column:2;grid-row:1/3;color:#777;font-size:12px}
+.visitor-stats-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.visitor-privacy-note{border-left:3px solid #c7c2f7;padding-left:10px}
+.visitor-stats-panel:not(.owner-device) .visitor-count-card{opacity:.72}
