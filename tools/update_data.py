@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Build the Uma Musume support/skill update pack.
 
-Designed for GitHub Actions. It checks GameTora's public manifest, collects
-new/recent SSR/SR support cards with Playwright, merges them into the curated
-pack, and never replaces curated numerical skill values with guessed values.
+GameTora is used to detect new cards and metadata. U-tools is used to collect
+separately-labelled training/event skills. A curated multi-source table keeps
+recent cards complete when upstream page layouts change. Existing verified
+numerical skill values are never replaced by guessed values.
 """
 from __future__ import annotations
 
@@ -24,12 +25,16 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
+from curated_patch_v35 import CURATED, ALIASES
+
 ROOT = Path(__file__).resolve().parents[1]
 PACK_JSON = ROOT / "data" / "latest-data-pack.json"
 PACK_JS = ROOT / "data" / "latest-data-pack.js"
 MANIFEST_URL = "https://gametora.com/data/manifests/umamusume.json"
 SUPPORT_LIST_URL = "https://gametora.com/ja/umamusume/supports"
 BASE_URL = "https://gametora.com"
+UTOOLS_LIST_URL = "https://xn--gck1f423k.xn--1bvt37a.tools/supports"
+UTOOLS_BASE_URL = "https://xn--gck1f423k.xn--1bvt37a.tools"
 MAX_REFRESH_EXISTING = int(os.environ.get("UMA_REFRESH_EXISTING", "20"))
 MAX_DETAIL_PAGES = int(os.environ.get("UMA_MAX_DETAIL_PAGES", "90"))
 
@@ -60,7 +65,9 @@ def write_pack(pack: dict[str, Any]) -> None:
 
 
 def normalize(value: Any) -> str:
-    return re.sub(r"\s+", "", str(value or "").replace("◯", "○").replace("〇", "○")).strip()
+    text = str(value or "").replace("◯", "○").replace("〇", "○").strip()
+    text = ALIASES.get(text, text)
+    return re.sub(r"\s+", "", text)
 
 
 def support_key(card: dict[str, Any]) -> str:
@@ -119,10 +126,11 @@ def date_from_text(text: str) -> str | None:
     return None
 
 
-def skill_guess(name: str) -> dict[str, Any]:
+def skill_guess(name: str, force_grade: str | None = None) -> dict[str, Any]:
     """Conservative fallback used only for newly discovered uncurated skills."""
     n = normalize(name)
-    grade = "gold" if any(h == n for h in GOLD_HINTS) else "white"
+    curated_gold={normalize(x) for v in CURATED.values() for x in v.get("goldSkills",[])}
+    grade = force_grade or ("gold" if any(normalize(h) == n for h in GOLD_HINTS) or n in curated_gold else "white")
     if grade == "gold":
         sp, evaluation, exam_bonus = 180, 508, 1200
     elif n.endswith("○") and any(x in n for x in ("右回り", "左回り", "春ウマ娘", "夏ウマ娘", "秋ウマ娘", "冬ウマ娘", "良バ場", "道悪", "晴れの日", "曇りの日", "雨の日", "雪の日")):
@@ -174,6 +182,99 @@ async def collect_support_links(page) -> list[dict[str, str]]:
         out.append({"href": href, "text": row.get("text", "")})
     return out
 
+
+
+async def collect_utools_links(page) -> list[dict[str, str]]:
+    """Collect U-tools support detail links with rendered DOM fallback."""
+    await page.goto(UTOOLS_LIST_URL, wait_until="domcontentloaded", timeout=90000)
+    try:
+        await page.wait_for_load_state("networkidle", timeout=25000)
+    except PlaywrightTimeoutError:
+        pass
+    await page.wait_for_timeout(800)
+    rows = await page.eval_on_selector_all(
+        'a[href*="/supports/"]',
+        """els => els.map(a => ({href:a.href, text:(a.innerText || a.textContent || '').trim()}))""",
+    )
+    seen=set(); out=[]
+    for row in rows:
+        href=str(row.get("href") or "").split("?")[0].rstrip("/")
+        if not re.search(r"/supports/\d+$", href) or href in seen:
+            continue
+        seen.add(href); out.append({"href":href,"text":str(row.get("text") or "")})
+    return out
+
+
+def parse_skill_anchor(text: str) -> str:
+    text=re.sub(r"\s+"," ",str(text or "")).strip().replace("◯","○").replace("〇","○")
+    m=re.match(r"^(.+?)(?:\d+)Pt(?:\s|$)",text)
+    value=(m.group(1) if m else text).strip()
+    return ALIASES.get(value,value)
+
+
+async def scrape_utools_detail(page, item: dict[str, str], known_gold: set[str]) -> dict[str, Any] | None:
+    await page.goto(item["href"], wait_until="domcontentloaded", timeout=90000)
+    try:
+        await page.wait_for_load_state("networkidle", timeout=18000)
+    except PlaywrightTimeoutError:
+        pass
+    rows=await page.evaluate("""
+      () => {
+        const nodes=[...document.querySelectorAll('h1,h2,h3,a[href*="/skills/"]')];
+        let section=''; const out=[];
+        for(const el of nodes){
+          if(/^H[123]$/.test(el.tagName)){
+            const t=(el.innerText||el.textContent||'').trim();
+            if(t.includes('イベントで取得')) section='event';
+            else if(t.includes('トレーニングで取得')) section='training';
+            else if(el.tagName!=='H1') section='';
+          }else if(section){
+            out.push({section,text:(el.innerText||el.textContent||'').trim(),href:el.href||''});
+          }
+        }
+        return out;
+      }
+    """)
+    body=await page.locator("body").inner_text()
+    lines=[re.sub(r"\s+"," ",x).strip() for x in body.splitlines() if x.strip()]
+    title=""; name=""
+    for i,line in enumerate(lines[:20]):
+        m=re.fullmatch(r"[\[［【](.+?)[\]］】]",line)
+        if m:
+            title=m.group(1).strip()
+            if i+1<len(lines): name=lines[i+1].strip()
+            break
+    if not name or not title:
+        pn,pt=parse_card_label(item.get("text", "")); name=name or pn; title=title or pt
+    hint=[]; event=[]; gold=[]
+    for row in rows:
+        sk=parse_skill_anchor(row.get("text", ""))
+        if not sk or len(sk)>60: continue
+        key=normalize(sk)
+        target=gold if key in known_gold else (hint if row.get("section")=="training" else event)
+        if key not in {normalize(x) for x in target}: target.append(sk)
+    if not hint and not event and not gold:
+        return None
+    return {
+      "name":name,"title":title,"hintSkills":hint,"eventSkills":event,"goldSkills":gold,
+      "skills":list(dict.fromkeys(hint+event)),"source":"U-tools＋GameTora自動照合",
+      "sourceUrl":item["href"],"dataChecked":datetime.now(ZoneInfo("Asia/Tokyo")).date().isoformat(),
+      "dataQuality":"multi-source-auto",
+    }
+
+
+def apply_curated(card: dict[str, Any]) -> dict[str, Any]:
+    key=next((k for k in CURATED if normalize(k[0])==normalize(card.get("name")) and normalize(k[1])==normalize(card.get("title"))),None)
+    if not key: return card
+    val=CURATED[key]
+    card["hintSkills"]=list(dict.fromkeys(ALIASES.get(x,x) for x in val["hintSkills"]))
+    card["eventSkills"]=list(dict.fromkeys(ALIASES.get(x,x) for x in val["eventSkills"]))
+    card["goldSkills"]=list(dict.fromkeys(ALIASES.get(x,x) for x in val["goldSkills"]))
+    card["skills"]=list(dict.fromkeys(card["hintSkills"]+card["eventSkills"]))
+    card["source"]="U-tools＋GameWith／Game8等で複数照合"
+    card["dataQuality"]="multi-source-curated"
+    card["dataChecked"]=datetime.now(ZoneInfo("Asia/Tokyo")).date().isoformat()
+    return card
 
 async def scrape_support_detail(page, item: dict[str, str]) -> dict[str, Any] | None:
     href = item["href"]
@@ -271,21 +372,20 @@ async def scrape_support_detail(page, item: dict[str, str]) -> dict[str, Any] | 
 
 def merge_card(existing: dict[str, Any] | None, scraped: dict[str, Any]) -> dict[str, Any]:
     if not existing:
-        return scraped
+        return apply_curated(scraped)
     out = deepcopy(existing)
-    # Never erase editorial fields or user's default owned state.
-    for key in ("rarity", "name", "title", "type", "releaseDate", "dataChecked", "sourceUrl", "sourceSupportId"):
-        if scraped.get(key):
-            out[key] = scraped[key]
+    for key in ("rarity", "name", "title", "type", "releaseDate", "dataChecked", "sourceUrl", "sourceSupportId", "dataQuality"):
+        if scraped.get(key): out[key] = scraped[key]
+    is_utools=str(scraped.get("source") or "").startswith("U-tools")
     for key in ("hintSkills", "eventSkills", "goldSkills", "skills"):
-        merged: list[str] = []
-        for value in list(out.get(key) or []) + list(scraped.get(key) or []):
-            if value and normalize(value) not in {normalize(x) for x in merged}:
-                merged.append(value)
-        out[key] = merged
-    out["source"] = out.get("source") or scraped["source"]
-    out["dataChecked"] = scraped["dataChecked"]
-    return out
+        values=list(scraped.get(key) or []) if is_utools else list(out.get(key) or [])+list(scraped.get(key) or [])
+        merged=[]; seen=set()
+        for value in values:
+            value=ALIASES.get(str(value).strip(),str(value).strip()); nk=normalize(value)
+            if nk and nk not in seen: seen.add(nk); merged.append(value)
+        if merged or is_utools: out[key]=merged
+    if scraped.get("source"): out["source"]=scraped["source"]
+    return apply_curated(out)
 
 
 async def run() -> int:
@@ -309,7 +409,7 @@ async def run() -> int:
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
-        context = await browser.new_context(locale="ja-JP", user_agent="UmaDataUpdater/3.3 (+GitHub Actions)")
+        context = await browser.new_context(locale="ja-JP", user_agent="UmaDataUpdater/3.5 (+GitHub Actions)")
         page = await context.new_page()
         links = await collect_support_links(page)
         refresh_budget = MAX_REFRESH_EXISTING
@@ -328,9 +428,30 @@ async def run() -> int:
                 detail = await scrape_support_detail(page, item)
                 if detail:
                     details.append(detail)
-                    print(f"[{idx}/{len(selected)}] {detail['rarity']} {detail['name']} {detail['title']}")
+                    print(f"[GameTora {idx}/{len(selected)}] {detail['rarity']} {detail['name']} {detail['title']}")
             except Exception as exc:  # continue when a single page changes layout
-                print(f"WARN detail failed: {item['href']}: {exc}", file=sys.stderr)
+                print(f"WARN GameTora detail failed: {item['href']}: {exc}", file=sys.stderr)
+
+        known_gold={normalize(s.get("name")) for s in pack.get("skills",[]) if s.get("grade")=="gold"}
+        for val in CURATED.values():
+            known_gold.update(normalize(x) for x in val.get("goldSkills",[]))
+        try:
+            ulinks=await collect_utools_links(page)
+            # U-tools is normally ordered newest first. Refresh the newest detail pages
+            # directly, because list-card text can change and should not decide whether a
+            # recent card receives its skill data.
+            uselected=ulinks[:MAX_DETAIL_PAGES]
+            for idx,item in enumerate(uselected,1):
+                try:
+                    detail=await scrape_utools_detail(page,item,known_gold)
+                    if detail:
+                        # U-tools data is merged after GameTora and therefore wins for skill sections.
+                        details.append(detail)
+                        print(f"[U-tools {idx}/{len(uselected)}] {detail['name']} {detail['title']}")
+                except Exception as exc:
+                    print(f"WARN U-tools detail failed: {item['href']}: {exc}",file=sys.stderr)
+        except Exception as exc:
+            print(f"WARN U-tools list failed: {exc}",file=sys.stderr)
         await browser.close()
 
     added_cards = 0
@@ -349,32 +470,47 @@ async def run() -> int:
             by_source_id[str(merged.get("sourceSupportId"))] = merged
             added_cards += 1
 
+    for idx,card in enumerate(cards):
+        cards[idx]=apply_curated(card)
+
     skill_map = {normalize(s.get("name")): s for s in pack.get("skills", [])}
     added_skills = 0
     for card in cards:
+        gold_names={normalize(x) for x in card.get("goldSkills") or []}
         all_skills = list(card.get("skills") or []) + list(card.get("hintSkills") or []) + list(card.get("eventSkills") or []) + list(card.get("goldSkills") or [])
         for name in all_skills:
             key = normalize(name)
             if key and key not in skill_map:
-                guessed = skill_guess(str(name))
+                guessed = skill_guess(str(name), "gold" if key in gold_names else None)
                 pack["skills"].append(guessed)
                 skill_map[key] = guessed
                 added_skills += 1
+            elif key in gold_names and key in skill_map and skill_map[key].get("grade") != "gold":
+                sk=skill_map[key]; sk["grade"]="gold"; sk["factorEligible"]=False; sk["examBonus"]=1200
+                if sk.get("estimatedEvaluation") or not sk.get("verifiedEvaluation"):
+                    sk.update({"sp":180,"evaluation":508,"evaluationA":508,"efficiency":round(508/180,3)})
 
     now = datetime.now(timezone.utc)
     pack["version"] = now.astimezone(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d-auto-%H%M")
     pack["generatedAt"] = now.isoformat().replace("+00:00", "Z")
-    pack["sourceLabel"] = "GameTora日次自動更新＋ツール内精査値"
+    pack["sourceLabel"] = "U-tools＋GameWith／Game8＋GameTora複数照合"
     pack["externalHashes"] = next_hashes
     pack["releaseNotes"] = [
         f"サポカ自動追加 {added_cards}枚・既存更新 {updated_cards}枚",
         f"新規スキル名 {added_skills}件を追加",
-        "既存の精査済みSP・基礎評価点は維持",
-        "新規未確認スキルの数値は暫定値として明示",
+        "U-toolsでトレーニング／イベント取得を分離しGameToraと照合",
+        "直近の不足カードは複数攻略サイト照合済みデータで補完",
+        "既存の精査済みSP・基礎評価点は維持し、未確認値のみ暫定表示",
     ]
     pack.setdefault("sources", [])
-    if not any(s.get("url") == SUPPORT_LIST_URL for s in pack["sources"] if isinstance(s, dict)):
-        pack["sources"].append({"name": "GameTora サポートカード一覧", "url": SUPPORT_LIST_URL, "role": "新規カード・取得スキルの自動検出"})
+    source_defs=[
+      {"name":"GameTora サポートカード一覧","url":SUPPORT_LIST_URL,"role":"新規カード・タイプ・実装情報の検出"},
+      {"name":"U-tools サポートカード詳細","url":UTOOLS_LIST_URL,"role":"トレーニング取得・イベント取得スキルの自動照合"},
+      {"name":"GameWith ウマ娘攻略","url":"https://gamewith.jp/uma-musume/","role":"直近カードの副照合"},
+      {"name":"Game8 ウマ娘攻略","url":"https://game8.jp/umamusume","role":"直近カードの副照合"},
+    ]
+    for sd in source_defs:
+        if not any(isinstance(x,dict) and x.get("url")==sd["url"] for x in pack["sources"]): pack["sources"].append(sd)
 
     # Do not create noisy commits if neither source nor normalized data changed.
     if not manifest_changed and not added_cards and not updated_cards and not added_skills:
