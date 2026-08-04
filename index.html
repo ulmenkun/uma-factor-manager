@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
   <title>技能試験・自動因子設計</title>
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=36">
 </head>
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.3.5</span>
+    <span class="version">Ver.3.6</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <div class="header-status"><span id="dataUpdateBadge" class="data-update-badge">最新確認</span><span id="saveState" class="save-state">自動保存</span></div>
@@ -161,37 +161,52 @@
       <div><small id="sheetRole"></small><h2 id="sheetTitle">個体編集</h2></div>
       <button class="close-button" type="button" data-close-node>閉じる</button>
     </div>
-    <div class="sheet-tabs">
-      <button class="sheet-tab active" data-sheet-tab="candidate" type="button">候補</button>
-      <button class="sheet-tab" data-sheet-tab="factor" type="button">因子</button>
-    </div>
+    <div class="node-editor-intro">ウマ娘の選択と因子の設定を、別々の枠に分けています。上の枠でウマ娘を決め、下の枠でそのウマ娘の因子を編集してください。</div>
 
-    <div id="candidatePane" class="sheet-pane">
+    <section id="candidatePane" class="sheet-pane node-edit-block candidate-edit-block">
+      <div class="node-edit-block-head">
+        <div><small>STEP A</small><h3>ウマ娘を選ぶ</h3></div>
+        <span id="candidateCurrentName" class="current-node-name"></span>
+      </div>
       <div class="sheet-stars">
         <span>赤因子★</span>
         <div id="sheetStarButtons" class="star-buttons"></div>
       </div>
       <div id="candidateList" class="candidate-list"></div>
-    </div>
-    <div id="factorPane" class="sheet-pane hidden">
+    </section>
+
+    <section id="factorPane" class="sheet-pane node-edit-block factor-edit-block">
+      <div class="node-edit-block-head">
+        <div><small>STEP B</small><h3>因子を設定する</h3></div>
+        <span id="factorSubjectName" class="current-node-name"></span>
+      </div>
       <div id="nodeCompatibilityPanel" class="compatibility-panel"></div>
       <div class="factor-subtabs">
         <button class="factor-subtab active" data-factor-tab="skill" type="button">スキル因子</button>
         <button class="factor-subtab" data-factor-tab="race" type="button">レース因子</button>
       </div>
       <div id="skillFactorPane">
-        <div class="factor-toolbar">
-          <button id="assignAllTopBtn" type="button">上で選んだ因子を全部追加</button>
+        <div class="factor-toolbar factor-toolbar-expanded">
+          <button id="assignAllTopBtn" type="button">①で選んだ因子を全部追加</button>
+          <button id="removeUncheckedSkillsBtn" class="warning-mini" type="button">表示中の未選択を削除</button>
+          <button id="restoreHiddenSkillsBtn" class="mini-button ghost" type="button">削除したスキルを戻す <span id="hiddenSkillCount"></span></button>
           <button id="clearNodeFactorsBtn" class="danger-mini" type="button">このウマ娘の因子を一括削除</button>
           <input id="nodeSkillSearch" type="search" placeholder="スキル検索">
         </div>
+        <p class="sheet-note">削除は、このウマ娘の一覧から隠すだけです。①の白因子選択や他のウマ娘には影響しません。</p>
         <div id="nodeWhiteSkills" class="node-white-list"></div>
       </div>
       <div id="raceFactorPane" class="hidden">
-        <p class="sheet-note">このウマ娘が適性B以上で走りやすいG1を表示。レース勝利・因子★を記録できます。</p>
+        <p class="sheet-note">④で選択したレースを初期表示します。このウマ娘だけにレースを追加したり、不要なレースを削除したりできます。</p>
+        <div id="nodeRaceScheduleSummary" class="race-factor-summary"></div>
+        <div class="race-factor-toolbar">
+          <select id="nodeRaceAddSelect" aria-label="追加するレース"></select>
+          <button id="addNodeRaceBtn" type="button">レースを追加</button>
+          <button id="resetNodeRacesBtn" class="mini-button ghost" type="button">④の選択に戻す</button>
+        </div>
         <div id="nodeRaceFactors" class="node-race-list"></div>
       </div>
-    </div>
+    </section>
   </section>
 </div>
 <div id="targetBuildSheet" class="sheet hidden" aria-hidden="true">
@@ -251,13 +266,13 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=35"></script>
-<script src="support-data-v31.js?v=35"></script>
-<script src="data/latest-data-pack.js?v=35"></script>
-<script src="data-update-bootstrap.js?v=35"></script>
-<script src="app.js?v=35"></script>
-<script src="features-v31.js?v=35"></script>
-<script src="data-updater-ui.js?v=35"></script>
-<script src="visitor-stats.js?v=35"></script>
+<script src="data.js?v=36"></script>
+<script src="support-data-v31.js?v=36"></script>
+<script src="data/latest-data-pack.js?v=36"></script>
+<script src="data-update-bootstrap.js?v=36"></script>
+<script src="app.js?v=36"></script>
+<script src="features-v31.js?v=36"></script>
+<script src="data-updater-ui.js?v=36"></script>
+<script src="visitor-stats.js?v=36"></script>
 </body>
 </html>
