@@ -345,3 +345,4 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
   .node-white-top .node-row-delete,.node-white-top .node-row-selected,.node-race-top .node-row-delete{grid-column:2/4;justify-self:end}
 }
 .candidate-edit-block .candidate-list{max-height:38vh;overflow:auto;padding-right:2px}
+.node-factor-selected{font-size:10px;font-weight:850;color:#4f46b8;background:#efedff;border-radius:999px;padding:4px 7px;white-space:nowrap}
