@@ -349,3 +349,16 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 
 /* Ver.3.9 所持ウマ娘 */
 .owned-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 8px}.owned-search{flex:1 1 220px;min-width:0;padding:10px 12px;border:1px solid var(--border,#d9d9e3);border-radius:10px;background:#fff;font-size:16px}.owned-count{font-weight:800;white-space:nowrap;color:#5d6472}.owned-toolbar button{padding:9px 12px;border-radius:9px;border:1px solid #cfd4dc;background:#fff;font-weight:700}.owned-list{max-height:440px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px;padding:4px}.owned-item{display:flex;gap:8px;align-items:center;padding:9px 10px;border:1px solid #e0e3e8;border-radius:10px;background:#fff}.owned-item input{width:18px;height:18px}@media(max-width:620px){.owned-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:520px}.owned-item{font-size:13px;padding:8px 7px}.owned-toolbar button{font-size:12px;padding:8px}.owned-count{font-size:12px}}
+/* Ver.4.0 red-factor / compatibility rotation planner */
+.red-plan-switch{margin:10px 0 12px;padding:10px 12px;border:1px solid rgba(94,73,226,.18);border-radius:14px;background:rgba(94,73,226,.055)}
+.red-factor-plan-summary{margin:10px 0 14px;padding:12px 14px;border:1px solid rgba(94,73,226,.2);border-radius:16px;background:linear-gradient(180deg,rgba(94,73,226,.07),rgba(94,73,226,.025));font-size:13px;line-height:1.55}
+.red-factor-plan-summary:empty{display:none}
+.red-plan-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px}
+.red-plan-title b{font-size:15px}.red-plan-title span{font-size:11px;padding:3px 7px;border-radius:999px;background:rgba(94,73,226,.12);color:#5e49e2;font-weight:700}
+.red-plan-target{padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.68);margin-bottom:6px}
+.red-plan-parent,.red-plan-races,.red-plan-dirt{margin-top:5px}.red-plan-dirt{color:#835117}.red-factor-plan-summary small{display:block;margin-top:7px;color:#777}
+.node-aptitude-mini{display:block;font-size:10px;color:#6d6d79;margin-top:3px}
+@media (prefers-color-scheme: dark){.red-plan-target{background:rgba(255,255,255,.06)}.red-factor-plan-summary small{color:#aaa}.node-aptitude-mini{color:#aaa}.red-plan-title span{color:#b9adff}}
+.red-plan-details{margin:8px 0;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.62);border:1px solid rgba(94,73,226,.12)}
+.red-plan-details summary{cursor:pointer;font-weight:800;color:#5748d8}.red-plan-details>div{margin-top:7px;font-size:11px;line-height:1.55}
+@media (prefers-color-scheme:dark){.red-plan-details{background:rgba(255,255,255,.04)}.red-plan-details summary{color:#b9adff}}

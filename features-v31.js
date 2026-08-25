@@ -54,7 +54,7 @@ function ensurePlan(key){
   state.support.plans[key]=p;return p;
 }
 function ensureV31(){
-  ensureScenario();state.version="3.8";
+  ensureScenario();state.version="4.0";
   ["mile","chase"].forEach(function(b){var br=state.branches[b];br.redTypes=br.redTypes||{};SLOTS.forEach(function(s){if(!br.redTypes[s])br.redTypes[s]=cfg.slots[b].target})});
   state.support=state.support||{};
   var oldDeck=Array.isArray(state.support.deck)?state.support.deck.slice(0,6):null;
@@ -207,7 +207,7 @@ function distributeFactors(){
   core.save();core.renderTree();renderSupport();core.toast("技能試験効率の高い白因子を両家系へ優先配置しました");
 }
 function clearNodeFactors(){var b=core.getActiveBranch(),s=core.getActiveSlot();if(!s)return;if(!confirm("このウマ娘のスキル因子・レース因子をすべて削除しますか？"))return;state.branches[b].skillFactors[s]={};state.branches[b].raceFactors[s]={};state.branches[b].hiddenSkills=state.branches[b].hiddenSkills||{};state.branches[b].hiddenSkills[s]={};state.branches[b].raceListOverrides=state.branches[b].raceListOverrides||{};state.branches[b].raceListOverrides[s]={added:{},removed:{}};core.save();core.renderSkillFactors();core.renderRaceFactors();core.renderTree();renderSupport();core.toast("このウマ娘の因子を削除しました")}
-function installRedTypeEditor(){var b=core.getActiveBranch(),s=core.getActiveSlot();if(!s)return;var holder=document.querySelector(".sheet-stars");if(!holder)return;var old=document.getElementById("redFactorTypeWrap");if(old)old.remove();var wrap=document.createElement("label");wrap.id="redFactorTypeWrap";wrap.className="red-factor-type";wrap.innerHTML='赤因子<select id="redFactorTypeSelect">'+RED_TYPES.map(function(t){return'<option '+(state.branches[b].redTypes[s]===t?'selected':'')+'>'+t+'</option>'}).join('')+'</select>';holder.prepend(wrap);document.getElementById("redFactorTypeSelect").onchange=function(){state.branches[b].redTypes[s]=this.value;core.save();core.renderTree()}}
+function installRedTypeEditor(){var b=core.getActiveBranch(),s=core.getActiveSlot();if(!s)return;var holder=document.querySelector(".sheet-stars");if(!holder)return;var old=document.getElementById("redFactorTypeWrap");if(old)old.remove();var wrap=document.createElement("label");wrap.id="redFactorTypeWrap";wrap.className="red-factor-type";wrap.innerHTML='赤因子<select id="redFactorTypeSelect">'+RED_TYPES.map(function(t){return'<option '+(state.branches[b].redTypes[s]===t?'selected':'')+'>'+t+'</option>'}).join('')+'</select>';holder.prepend(wrap);document.getElementById("redFactorTypeSelect").onchange=function(){state.branches[b].redTypes[s]=this.value;core.save();core.renderTree();core.renderSchedule()}}
 
 function targetSkill(name){state.targetBuild.skills[name]=state.targetBuild.skills[name]||{selected:false,hint:0};return state.targetBuild.skills[name]}
 function statScore(v){v=Math.max(0,Number(v||0));for(var i=1;i<STAT_POINTS.length;i++){if(v<=STAT_POINTS[i][0]){var a=STAT_POINTS[i-1],b=STAT_POINTS[i],r=(v-a[0])/(b[0]-a[0]);return Math.round(a[1]+(b[1]-a[1])*r)}}var z=STAT_POINTS[STAT_POINTS.length-1];return Math.round(z[1]+(v-z[0])*12)}
