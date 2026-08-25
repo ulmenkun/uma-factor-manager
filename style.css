@@ -362,3 +362,5 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .red-plan-details{margin:8px 0;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.62);border:1px solid rgba(94,73,226,.12)}
 .red-plan-details summary{cursor:pointer;font-weight:800;color:#5748d8}.red-plan-details>div{margin-top:7px;font-size:11px;line-height:1.55}
 @media (prefers-color-scheme:dark){.red-plan-details{background:rgba(255,255,255,.04)}.red-plan-details summary{color:#b9adff}}
+.red-plan-checks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}.red-plan-checks span{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px}.red-plan-checks .ok{background:rgba(35,165,95,.12);color:#177646;border:1px solid rgba(35,165,95,.22)}.red-plan-checks .ng{background:rgba(218,64,64,.12);color:#b12f2f;border:1px solid rgba(218,64,64,.22)}
+@media (prefers-color-scheme:dark){.red-plan-checks .ok{color:#81d7a5}.red-plan-checks .ng{color:#ff9a9a}}
