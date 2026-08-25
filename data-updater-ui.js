@@ -55,7 +55,9 @@
     currentSkills().forEach(function(s){skillMap[String(s.name||"")]=s});
     (pack.supportCards||[]).forEach(function(c){var old=cardMap[keyCard(c)];if(!old)addedCards++;else if(JSON.stringify(old)!==JSON.stringify(Object.assign({},old,c)))changedCards++});
     (pack.skills||[]).forEach(function(s){var old=skillMap[String(s.name||"")];if(!old)addedSkills++;else if(JSON.stringify(old)!==JSON.stringify(Object.assign({},old,s)))changedSkills++});
-    return{addedCards:addedCards,changedCards:changedCards,addedSkills:addedSkills,changedSkills:changedSkills,removedCards:(pack.removedSupportCardIds||[]).length,removedSkills:(pack.removedSkillNames||[]).length};
+    var currentRoster=(window.AUTO_FACTOR_DATA&&window.AUTO_FACTOR_DATA.ownedCharacterRoster)||[];
+    var traineeChanged=Array.isArray(pack.trainees)&&JSON.stringify(pack.trainees)!==JSON.stringify(currentRoster);
+    return{addedCards:addedCards,changedCards:changedCards,addedSkills:addedSkills,changedSkills:changedSkills,removedCards:(pack.removedSupportCardIds||[]).length,removedSkills:(pack.removedSkillNames||[]).length,traineeChanged:traineeChanged,traineeCount:Array.isArray(pack.trainees)?pack.trainees.length:currentRoster.length};
   }
   function isNewer(pack){
     var cur=currentMeta();
@@ -73,7 +75,7 @@
     var meta=currentMeta(),box=document.getElementById("dataUpdateStatus");if(!box)return;
     var d=pendingInfo&&pendingInfo.diff;
     var preview=pendingPack?'<div class="update-preview"><b>見つかった更新：'+esc(pendingPack.version)+'</b><span>生成 '+esc(dateText(pendingPack.generatedAt))+'</span>'+ 
-      '<div class="update-count-grid"><span>サポカ追加 <strong>'+d.addedCards+'</strong></span><span>サポカ更新 <strong>'+d.changedCards+'</strong></span><span>スキル追加 <strong>'+d.addedSkills+'</strong></span><span>スキル更新 <strong>'+d.changedSkills+'</strong></span></div>'+ 
+      '<div class="update-count-grid"><span>サポカ追加 <strong>'+d.addedCards+'</strong></span><span>サポカ更新 <strong>'+d.changedCards+'</strong></span><span>スキル追加 <strong>'+d.addedSkills+'</strong></span><span>スキル更新 <strong>'+d.changedSkills+'</strong></span><span>育成ウマ娘 <strong>'+d.traineeCount+(d.traineeChanged?' 更新':'')+'</strong></span></div>'+ 
       ((pendingPack.releaseNotes||[]).length?'<small>'+pendingPack.releaseNotes.slice(0,4).map(esc).join('／')+'</small>':'')+'</div>':'';
     box.innerHTML='<div class="'+statusClass(kind)+'"><b>'+(message||"最新データを確認できます")+'</b><span>現在：'+esc(meta.version||"不明")+'（サポカ '+currentCards().length+'枚／スキル '+currentSkills().length+'件）</span><small>最終確認：'+esc(dateText(settings.lastChecked))+(settings.lastApplied?'／最終適用：'+esc(dateText(settings.lastApplied)):'')+'</small></div>'+preview;
     var apply=document.getElementById("applyDataUpdateBtn");if(apply){apply.disabled=!pendingPack;apply.classList.toggle("hidden",!pendingPack)}

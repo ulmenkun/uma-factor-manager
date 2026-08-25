@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div>
-    <span class="version">Ver.3.8</span>
+    <span class="version">Ver.3.9</span>
     <h1>技能試験・自動因子設計</h1>
   </div>
   <div class="header-status"><span id="dataUpdateBadge" class="data-update-badge">最新確認</span><span id="saveState" class="save-state">自動保存</span></div>
@@ -106,6 +106,13 @@
     <summary>⑤ 所持ウマ娘で絞り込む</summary>
     <div class="panel-body">
       <label class="switch-row"><input id="onlyOwned" type="checkbox"><span>所持ウマ娘だけを候補にする</span></label>
+      <div class="owned-toolbar">
+        <input id="ownedSearch" class="owned-search" type="search" placeholder="ウマ娘名で検索">
+        <span id="ownedCount" class="owned-count"></span>
+        <button id="ownedSelectVisibleBtn" type="button">表示中を所持</button>
+        <button id="ownedClearVisibleBtn" type="button">表示中を解除</button>
+      </div>
+      <p class="hint">2026/8/24時点の育成実装済み133人（エピファネイアまで）。衣装違いは因子継承上同じウマ娘として1人にまとめています。</p>
       <div id="ownedList" class="owned-list"></div>
     </div>
   </details>

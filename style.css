@@ -346,3 +346,6 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 }
 .candidate-edit-block .candidate-list{max-height:38vh;overflow:auto;padding-right:2px}
 .node-factor-selected{font-size:10px;font-weight:850;color:#4f46b8;background:#efedff;border-radius:999px;padding:4px 7px;white-space:nowrap}
+
+/* Ver.3.9 所持ウマ娘 */
+.owned-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 8px}.owned-search{flex:1 1 220px;min-width:0;padding:10px 12px;border:1px solid var(--border,#d9d9e3);border-radius:10px;background:#fff;font-size:16px}.owned-count{font-weight:800;white-space:nowrap;color:#5d6472}.owned-toolbar button{padding:9px 12px;border-radius:9px;border:1px solid #cfd4dc;background:#fff;font-weight:700}.owned-list{max-height:440px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px;padding:4px}.owned-item{display:flex;gap:8px;align-items:center;padding:9px 10px;border:1px solid #e0e3e8;border-radius:10px;background:#fff}.owned-item input{width:18px;height:18px}@media(max-width:620px){.owned-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:520px}.owned-item{font-size:13px;padding:8px 7px}.owned-toolbar button{font-size:12px;padding:8px}.owned-count{font-size:12px}}

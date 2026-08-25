@@ -42,6 +42,10 @@
       else{skillBy[name]=incoming;skillBase.push(incoming)}
     });
     cfg.skillCatalog.splice.apply(cfg.skillCatalog,[0,cfg.skillCatalog.length].concat(skillBase));
+    if(Array.isArray(pack.trainees)&&pack.trainees.length){
+      cfg.ownedCharacterRoster=Array.from(new Set(pack.trainees.map(function(x){return String(x||"").trim()}).filter(Boolean)));
+      cfg.ownedRosterDataVersion=pack.traineeDataVersion||pack.version;
+    }
     cfg.dataVersion=(pack.sourceLabel?pack.sourceLabel+"／":"")+pack.version;
     window.UMA_ACTIVE_DATA_PACK_META={
       version:pack.version,generatedAt:pack.generatedAt||null,sourceLabel:pack.sourceLabel||"オンライン更新パック",
