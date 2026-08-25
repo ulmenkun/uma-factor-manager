@@ -32,6 +32,7 @@ PACK_JSON = ROOT / "data" / "latest-data-pack.json"
 PACK_JS = ROOT / "data" / "latest-data-pack.js"
 MANIFEST_URL = "https://gametora.com/data/manifests/umamusume.json"
 SUPPORT_LIST_URL = "https://gametora.com/ja/umamusume/supports"
+TRAINEE_LIST_URL = "https://gamewith.jp/uma-musume/article/show/258299"
 BASE_URL = "https://gametora.com"
 UTOOLS_LIST_URL = "https://xn--gck1f423k.xn--1bvt37a.tools/supports"
 UTOOLS_BASE_URL = "https://xn--gck1f423k.xn--1bvt37a.tools"
@@ -160,6 +161,39 @@ def skill_guess(name: str, force_grade: str | None = None) -> dict[str, Any]:
         "examBonus": exam_bonus,
     }
 
+
+
+
+def base_trainee_name(value: str) -> str:
+    text = re.sub(r"\s+", "", str(value or "").strip())
+    # GameWith alt text uses costume labels in parentheses. Genealogy ownership is tracked by base character.
+    text = re.sub(r"[（(][^）)]*[）)]$", "", text)
+    return text.strip()
+
+
+async def collect_trainee_roster(page) -> list[str]:
+    await page.goto(TRAINEE_LIST_URL, wait_until="domcontentloaded", timeout=90000)
+    try:
+        await page.wait_for_load_state("networkidle", timeout=25000)
+    except PlaywrightTimeoutError:
+        pass
+    await page.wait_for_timeout(700)
+    values = await page.eval_on_selector_all(
+        'img[alt]',
+        """els => els.map(x => (x.getAttribute('alt') || '').trim()).filter(Boolean)""",
+    )
+    out=[]; seen=set()
+    bad=("アイコン","バナー","logo","ロゴ","ウマ娘攻略","攻略班")
+    for value in values:
+        name=base_trainee_name(value)
+        if not name or len(name)>30 or any(x.lower() in name.lower() for x in bad):
+            continue
+        # Candidate names on this checker are Japanese character names; exclude generic image alt strings.
+        if not re.search(r"[ァ-ヶー一-龠]", name):
+            continue
+        if name not in seen:
+            seen.add(name); out.append(name)
+    return out
 
 async def collect_support_links(page) -> list[dict[str, str]]:
     await page.goto(SUPPORT_LIST_URL, wait_until="domcontentloaded", timeout=90000)
@@ -406,6 +440,7 @@ async def run() -> int:
     by_key = {support_key(c): c for c in cards}
     by_source_id = {str(c.get("sourceSupportId")): c for c in cards if c.get("sourceSupportId")}
     details: list[dict[str, Any]] = []
+    trainee_roster: list[str] = []
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
@@ -435,6 +470,12 @@ async def run() -> int:
         known_gold={normalize(s.get("name")) for s in pack.get("skills",[]) if s.get("grade")=="gold"}
         for val in CURATED.values():
             known_gold.update(normalize(x) for x in val.get("goldSkills",[]))
+        trainee_roster=[]
+        try:
+            trainee_roster=await collect_trainee_roster(page)
+            print(f"[GameWith] trainee roster: {len(trainee_roster)} unique base characters")
+        except Exception as exc:
+            print(f"WARN trainee roster failed: {exc}",file=sys.stderr)
         try:
             ulinks=await collect_utools_links(page)
             # U-tools is normally ordered newest first. Refresh the newest detail pages
@@ -490,6 +531,13 @@ async def run() -> int:
                 if sk.get("estimatedEvaluation") or not sk.get("verifiedEvaluation"):
                     sk.update({"sp":180,"evaluation":508,"evaluationA":508,"efficiency":round(508/180,3)})
 
+    previous_trainees=list(pack.get("trainees") or [])
+    trainee_changed=False
+    if trainee_roster and len(trainee_roster)>=100:
+        pack["trainees"]=trainee_roster
+        pack["traineeDataVersion"]=datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
+        trainee_changed=(trainee_roster!=previous_trainees)
+
     now = datetime.now(timezone.utc)
     pack["version"] = now.astimezone(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d-auto-%H%M")
     pack["generatedAt"] = now.isoformat().replace("+00:00", "Z")
@@ -498,6 +546,7 @@ async def run() -> int:
     pack["releaseNotes"] = [
         f"サポカ自動追加 {added_cards}枚・既存更新 {updated_cards}枚",
         f"新規スキル名 {added_skills}件を追加",
+        f"育成ウマ娘所持リスト {len(pack.get('trainees') or [])}人" + ("へ更新" if trainee_changed else "を確認"),
         "U-toolsでトレーニング／イベント取得を分離しGameToraと照合",
         "直近の不足カードは複数攻略サイト照合済みデータで補完",
         "既存の精査済みSP・基礎評価点は維持し、未確認値のみ暫定表示",
@@ -505,6 +554,7 @@ async def run() -> int:
     pack.setdefault("sources", [])
     source_defs=[
       {"name":"GameTora サポートカード一覧","url":SUPPORT_LIST_URL,"role":"新規カード・タイプ・実装情報の検出"},
+      {"name":"GameWith 育成ウマ娘所持率チェッカー","url":TRAINEE_LIST_URL,"role":"育成実装済みウマ娘の所持リスト更新"},
       {"name":"U-tools サポートカード詳細","url":UTOOLS_LIST_URL,"role":"トレーニング取得・イベント取得スキルの自動照合"},
       {"name":"GameWith ウマ娘攻略","url":"https://gamewith.jp/uma-musume/","role":"直近カードの副照合"},
       {"name":"Game8 ウマ娘攻略","url":"https://game8.jp/umamusume","role":"直近カードの副照合"},
@@ -513,7 +563,7 @@ async def run() -> int:
         if not any(isinstance(x,dict) and x.get("url")==sd["url"] for x in pack["sources"]): pack["sources"].append(sd)
 
     # Do not create noisy commits if neither source nor normalized data changed.
-    if not manifest_changed and not added_cards and not updated_cards and not added_skills:
+    if not manifest_changed and not added_cards and not updated_cards and not added_skills and not trainee_changed:
         print("No upstream data changes detected.")
         return 0
     write_pack(pack)
