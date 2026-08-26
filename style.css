@@ -393,3 +393,14 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .upstream-note{font-size:10.5px;line-height:1.55;margin:7px 0 0;color:#666}
 .node-upstream-dirt{display:block;margin-top:4px;font-size:9.5px;font-weight:800;color:#2f6da7}
 @media (prefers-color-scheme:dark){.upstream-dirt-details{background:rgba(76,151,220,.05)}.upstream-dirt-details>summary,.node-upstream-dirt{color:#8dc7ff}.upstream-intro,.upstream-note{color:#aaa}.upstream-dirt-card{background:rgba(255,255,255,.035)}.upstream-parent-pair,.upstream-hidden-grid{background:rgba(255,255,255,.035)}.upstream-parent-pair small,.upstream-hidden-grid small{color:#aaa!important}.upstream-hidden-row.needed{background:rgba(255,177,45,.08)}}
+
+/* Ver.4.4 compact planner: family tree first, detailed red-factor/rotation plan collapsed by default */
+.red-plan-toggle{margin-top:9px;border:1px solid rgba(94,73,226,.18);border-radius:12px;background:rgba(94,73,226,.035);overflow:hidden}
+.red-plan-toggle>summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:12px;font-weight:900;color:var(--accent);background:rgba(94,73,226,.045)}
+.red-plan-toggle>summary::-webkit-details-marker{display:none}
+.red-plan-toggle>summary:after{content:"＋";float:right;font-size:16px;line-height:1}
+.red-plan-toggle[open]>summary:after{content:"−"}
+.red-plan-auto-note{margin:10px 12px 0;font-size:11px;line-height:1.5;color:var(--muted)}
+.red-plan-toggle .red-factor-plan-summary{margin:8px 10px 10px}
+.red-plan-toggle .g1-stage-summary{margin:0 10px 10px}
+@media (prefers-color-scheme:dark){.red-plan-toggle>summary{background:rgba(255,255,255,.035)}.red-plan-auto-note{color:#aaa}}

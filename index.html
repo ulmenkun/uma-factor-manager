@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#5748d8">
   <title>技能試験・自動因子設計</title>
-  <link rel="stylesheet" href="style.css?v=44">
+  <link rel="stylesheet" href="style.css?v=44r2">
 </head>
 <body>
 <header class="topbar">
@@ -47,8 +47,6 @@
       </div>
       <button id="autoDesignBtn" class="auto-button" type="button">自動で組み直す</button>
     </div>
-    <label class="switch-row red-plan-switch"><input id="compatDirtFocus" type="checkbox"><span>相性アップ用のダートG1ローテと、必要な赤因子まで自動設計する</span></label>
-
     <div class="tabs" role="tablist">
       <button class="tab active" data-branch="mile" type="button">マイル側</button>
       <button class="tab" data-branch="chase" type="button">追込側</button>
@@ -58,8 +56,14 @@
       <div><small>遺伝子条件</small><strong id="geneCondition">あと12★</strong></div>
       <div><small>最終開始時</small><strong id="finalAptitude">-</strong></div>
     </div>
-    <div id="redFactorPlanSummary" class="red-factor-plan-summary"></div>
-    <div id="familyTree" class="family-tree"><div class="loading-note">家系図を読み込み中…</div></div><div id="g1StageSummary" class="g1-stage-summary"></div><details class="final-inherit-box"><summary>最終育成への同名因子・父母合算確率</summary><div id="finalInheritanceSummary" class="final-inherit-list"></div></details>
+    <div id="familyTree" class="family-tree"><div class="loading-note">家系図を読み込み中…</div></div>
+    <details class="red-plan-toggle">
+      <summary>赤因子・相性ローテの詳細を見る</summary>
+      <p class="red-plan-auto-note">ダートG1ローテと必要な赤因子は、チェック操作なしで常におすすめ設計へ反映します。</p>
+      <div id="redFactorPlanSummary" class="red-factor-plan-summary"></div>
+      <div id="g1StageSummary" class="g1-stage-summary"></div>
+    </details>
+    <details class="final-inherit-box"><summary>最終育成への同名因子・父母合算確率</summary><div id="finalInheritanceSummary" class="final-inherit-list"></div></details>
     <div class="tree-help">各カード：候補変更／赤因子★／スキル因子／レース因子</div>
   </section>
   <section class="panel support-panel">
@@ -275,13 +279,13 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=44"></script>
-<script src="support-data-v31.js?v=44"></script>
-<script src="data/latest-data-pack.js?v=44"></script>
-<script src="data-update-bootstrap.js?v=44"></script>
-<script src="app.js?v=44"></script>
-<script src="features-v31.js?v=44"></script>
-<script src="data-updater-ui.js?v=44"></script>
-<script src="visitor-stats.js?v=44"></script>
+<script src="data.js?v=44r2"></script>
+<script src="support-data-v31.js?v=44r2"></script>
+<script src="data/latest-data-pack.js?v=44r2"></script>
+<script src="data-update-bootstrap.js?v=44r2"></script>
+<script src="app.js?v=44r2"></script>
+<script src="features-v31.js?v=44r2"></script>
+<script src="data-updater-ui.js?v=44r2"></script>
+<script src="visitor-stats.js?v=44r2"></script>
 </body>
 </html>
