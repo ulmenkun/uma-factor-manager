@@ -19,7 +19,7 @@ function defaultSelectedSkills(){var out={};cfg.skillCatalog.forEach(function(s)
 function defaultState(){
   var target=cfg.targets.jetblack;
   return{
-    version:"4.3",activeBranch:"mile",target:"jetblack",customTarget:"",
+    version:"4.4",activeBranch:"mile",target:"jetblack",customTarget:"",
     initial:clone(target.initial),desired:clone(target.desired),
     selectedSkills:defaultSelectedSkills(),onlyOwned:false,owned:{},compatDirtFocus:true,
     branches:{
@@ -55,7 +55,7 @@ function load(){try{var raw=localStorage.getItem(KEY);if(raw)return deepMerge(de
 function applyNewCatalogDefaults(){cfg.skillCatalog.forEach(function(s){if(s.default&&state.selectedSkills[s.name]===undefined)state.selectedSkills[s.name]=true})}
 function applyV26Corrections(){state.corrections=state.corrections||{};if(!state.corrections.v26){if(state.target==="jetblack"){if(state.initial["先行"]==="B")state.initial["先行"]="A";if(state.desired["先行"]==="B")state.desired["先行"]="A"}state.corrections.v26=true}}
 function applyV27Corrections(){state.corrections=state.corrections||{};if(!state.corrections.v27){if(state.target==="jetblack"){state.initial["先行"]="A";state.desired["先行"]="A"}state.corrections.v27=true}}
-function save(show){state.version="4.3";state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));renderStorageInfo();var e=document.getElementById("saveState");if(e){e.textContent="保存済み";clearTimeout(save.t);save.t=setTimeout(function(){e.textContent="自動保存"},900)}if(show)toast(show)}
+function save(show){state.version="4.4";state.activeBranch=activeBranch;state.lastSaved=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));renderStorageInfo();var e=document.getElementById("saveState");if(e){e.textContent="保存済み";clearTimeout(save.t);save.t=setTimeout(function(){e.textContent="自動保存"},900)}if(show)toast(show)}
 function toast(msg){var e=document.getElementById("toast");e.textContent=msg;e.classList.remove("hidden");clearTimeout(toast.t);toast.t=setTimeout(function(){e.classList.add("hidden")},1800)}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function gv(g){return cfg.ranks.indexOf(g)}
@@ -115,6 +115,11 @@ function candidateList(b,slot){return Object.keys(cfg.familyCharacters).map(func
 function best(b,slot){var x=candidateList(b,slot);return x.length?x[0].name:""}
 function setRed(b,slot,type,stars){ensureRedTypes();state.branches[b].redTypes[slot]=type;state.branches[b].stars[slot]=stars}
 function coreTargetMinimum(type){if(state.target==="jetblack"){if(type==="マイル")return"A";if(type==="追込")return"B"}return null}
+function finalTargetRedStars(type){
+  return [["mile","parent"],["mile","gp1"],["mile","gp2"],["chase","parent"],["chase","gp1"],["chase","gp2"]].reduce(function(total,x){
+    return total+(redType(x[0],x[1])===type?star(x[0],x[1]):0);
+  },0);
+}
 function targetRedPlan(){ensureRedTypes();var t1=cfg.slots.mile.target,t2=cfg.slots.chase.target;var bestPlan=null,validPlan=null,min1=coreTargetMinimum(t1),min2=coreTargetMinimum(t2);for(var n1=0;n1<=6;n1++){var n2=6-n1,s1=n1*3,s2=n2*3,r1=resultRank(state.initial[t1]||"G",s1),r2=resultRank(state.initial[t2]||"G",s2),w1=["短距離","マイル","中距離","長距離"].indexOf(t1)>=0?3:2,w2=["短距離","マイル","中距離","長距離"].indexOf(t2)>=0?3:2,score=(gv(r1)-gv(state.initial[t1]||"G"))*w1+(gv(r2)-gv(state.initial[t2]||"G"))*w2+(r1==="A"?4:0)+(r2==="A"?4:0),ok=(!min1||gv(r1)>=gv(min1))&&(!min2||gv(r2)>=gv(min2)),plan={n1:n1,n2:n2,t1:t1,t2:t2,r1:r1,r2:r2,score:score,hardOk:ok};if(!bestPlan||score>bestPlan.score)bestPlan=plan;if(ok&&(!validPlan||score>validPlan.score))validPlan=plan}return validPlan||bestPlan}
 function applyFinalRedPlan(){var p=targetRedPlan(),slots=["mile:parent","chase:parent","mile:gp1","mile:gp2","chase:gp1","chase:gp2"],assigned={};setRed("mile","parent",p.t1,3);assigned["mile:parent"]=p.t1;setRed("chase","parent",p.t2,3);assigned["chase:parent"]=p.t2;var rem1=Math.max(0,p.n1-1),rem2=Math.max(0,p.n2-1),gps=["mile:gp1","mile:gp2","chase:gp1","chase:gp2"];gps.forEach(function(key){var a=key.split(":"),type=rem1>0?p.t1:p.t2;if(rem1>0)rem1--;else rem2--;setRed(a[0],a[1],type,3);assigned[key]=type});return p}
 function requiredParentForBranch(b){if(state.target!=="jetblack"||state.compatDirtFocus===false)return"";return b==="mile"?"ラインクラフト":"ステイゴールド"}
@@ -300,13 +305,26 @@ function renderWhitePicker(){var q=(document.getElementById("whiteSearch").value
 function openWhitePicker(){whitePickerCategory=topWhiteCategory;document.getElementById("whiteSearch").value="";renderWhitePicker();document.getElementById("whitePickerSheet").classList.remove("hidden")}
 function closeWhite(){document.getElementById("whitePickerSheet").classList.add("hidden")}
 function renderStorageInfo(){var raw=JSON.stringify(state),verify=localStorage.getItem(KEY),ok=verify===raw,when=state.lastSaved?new Date(state.lastSaved).toLocaleString("ja-JP"):"未保存";document.getElementById("storageInfo").innerHTML='<strong>Safari内の自動保存：'+(ok?"正常":"要確認")+'</strong>最終保存：'+when+'<br>データ量：約'+Math.ceil(new Blob([raw]).size/1024)+'KB'+(state.lastImport?'<br>最終読込：'+new Date(state.lastImport).toLocaleString("ja-JP"):"")}
-function backupFile(){var payload=clone(state);payload.backupMeta={version:"4.3",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v43_バックアップ.json",{type:"application/json"})}
+function backupFile(){var payload=clone(state);payload.backupMeta={version:"4.4",createdAt:new Date().toISOString(),target:targetName(),skills:selectedSkillNames().length};return new File([JSON.stringify(payload,null,2)],"ウマ娘自動因子設計_v44_バックアップ.json",{type:"application/json"})}
 async function shareBackup(){var f=backupFile();if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:"因子設計バックアップ"});toast("共有画面を開きました");return}catch(e){if(e.name==="AbortError")return}}downloadBackup()}
 function downloadBackup(){var f=backupFile(),u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000);toast("バックアップを作成しました")}
 function renderScenario(){var e=document.getElementById("scenarioMode");if(!e)return;e.innerHTML=(cfg.scenarioModes||[]).map(function(x){return'<option value="'+x.id+'" '+(state.scenarioMode===x.id?'selected':'')+'>'+esc(x.name)+'</option>'}).join("")}
 function selectRecommendedRaces(){if(state.compatDirtFocus){applyCommonParentRotation();save("赤因子で補強した適性を含め、両親共通G1を選択しました");renderSchedule();renderTree();return}var b=activeBranch;state.branches[b].races={};var byTurn={};cfg.races.forEach(function(r){var k=timeKey(r),score=raceCoverage(b,r)-["parent","gp1","gp2","a1","a2","a3","a4"].filter(function(s){var n=selected(b,s);return n&&blockedReason(n,r)}).length;var old=byTurn[k];if(!old||score>old.score)byTurn[k]={r:r,score:score}});Object.keys(byTurn).forEach(function(k){if(byTurn[k].score>=4)state.branches[b].races[byTurn[k].r.id]=true});save("おすすめG1を選択しました");renderSchedule();renderTree()}
 function on(id,event,handler){var e=document.getElementById(id);if(e)e.addEventListener(event,handler)}
 document.addEventListener("click",function(ev){if(ev.target.closest("[data-close-white]")){ev.preventDefault();closeWhite()}if(ev.target.closest("[data-close-node]")){ev.preventDefault();closeNode()}});
+function applyV44Corrections(){
+  state.corrections=state.corrections||{};
+  if(state.corrections.v44)return;
+  if(state.target==="jetblack"){
+    state.initial["マイル"]="E";
+    state.initial["追込"]="D";
+    state.initial["先行"]="A";
+    state.desired["マイル"]="A";
+    state.desired["追込"]="A";
+    state.desired["先行"]="A";
+  }
+  state.corrections.v44=true;
+}
 function bind(){
   renderTargets();renderScenario();
   document.getElementById("scenarioMode").addEventListener("change",function(){state.scenarioMode=this.value;save();renderSchedule();renderTree()});
@@ -338,5 +356,5 @@ function bind(){
   document.getElementById("resetAllBtn").addEventListener("click",function(){if(confirm("全データを初期化しますか？")){localStorage.removeItem(KEY);location.reload()}})
 }
 window.UmaCore={cfg:cfg,getState:function(){return state},getActiveBranch:function(){return activeBranch},getActiveSlot:function(){return activeSlot},save:save,toast:toast,renderTree:renderTree,renderSchedule:renderSchedule,renderSkillFactors:renderSkillFactors,renderRaceFactors:renderRaceFactors,renderCompatibilityPanel:renderCompatibilityPanel,renderSelectedSkills:renderSelectedSkills,rebuild:rebuild,factorState:factorState,raceFactorState:raceFactorState,selectedSkillNames:selectedSkillNames,skillByName:skillByName,skillMetrics:skillMetrics,individualEstimate:individualEstimate,combineAtLeastOne:combineAtLeastOne,combineBoth:combineBoth,compatibilityTotal:compatibilityTotal,selected:selected,targetName:targetName,esc:esc};
-try{applyNewCatalogDefaults();applyV26Corrections();applyV27Corrections();applyV38Corrections();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save()}catch(err){window.__initError=String(err&&err.stack||err);console.error(err);["aptitudeGrid","topWhiteCategoryTabs","familyTree"].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='<div class="loading-note">読み込みエラー：ページを再読み込みしてください</div>'})}
+try{applyNewCatalogDefaults();applyV26Corrections();applyV27Corrections();applyV38Corrections();applyV44Corrections();ensure();bind();renderAptitudes();renderDataStatus();renderSelectedSkills();renderTree();renderSchedule();renderOwned();save()}catch(err){window.__initError=String(err&&err.stack||err);console.error(err);["aptitudeGrid","topWhiteCategoryTabs","familyTree"].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='<div class="loading-note">読み込みエラー：ページを再読み込みしてください</div>'})}
 })();
