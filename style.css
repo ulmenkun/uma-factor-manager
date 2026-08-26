@@ -364,3 +364,32 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 @media (prefers-color-scheme:dark){.red-plan-details{background:rgba(255,255,255,.04)}.red-plan-details summary{color:#b9adff}}
 .red-plan-checks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}.red-plan-checks span{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px}.red-plan-checks .ok{background:rgba(35,165,95,.12);color:#177646;border:1px solid rgba(35,165,95,.22)}.red-plan-checks .ng{background:rgba(218,64,64,.12);color:#b12f2f;border:1px solid rgba(218,64,64,.22)}
 @media (prefers-color-scheme:dark){.red-plan-checks .ok{color:#81d7a5}.red-plan-checks .ng{color:#ff9a9a}}
+
+/* Ver.4.2 parent dirt requirement breakdown */
+.dirt-requirement-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin:8px 0}
+.dirt-requirement-card{padding:10px;border:1px solid rgba(168,111,30,.22);border-radius:12px;background:rgba(255,184,72,.07)}
+.dirt-requirement-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.dirt-requirement-head b{font-size:12px}
+.dirt-need-ok,.dirt-need-ng{font-size:10px;font-weight:900;padding:3px 7px;border-radius:999px}.dirt-need-ok{background:rgba(35,165,95,.12);color:#177646}.dirt-need-ng{background:rgba(218,64,64,.12);color:#b12f2f}
+.dirt-requirement-summary{font-size:11px;margin:6px 0 7px;line-height:1.5}.dirt-requirement-summary strong{font-size:13px}
+.dirt-source-grid{display:grid;gap:3px}.dirt-source-row{display:grid;grid-template-columns:72px minmax(90px,1fr) minmax(115px,auto);gap:5px;align-items:center;padding:4px 6px;border-radius:8px;background:rgba(255,255,255,.52);font-size:10px}.dirt-source-row.dirt-source{background:rgba(255,166,41,.15);outline:1px solid rgba(213,126,12,.18)}
+.dirt-source-role{color:#777}.dirt-source-name{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dirt-source-factor{text-align:right}.dirt-source-factor b{color:#a35b00}
+.node-dirt-source{display:inline-flex;align-self:center;margin-top:3px;padding:2px 5px;border-radius:999px;background:rgba(255,166,41,.15);color:#985400;font-size:9px;font-weight:900}
+@media (prefers-color-scheme:dark){.dirt-requirement-card{background:rgba(255,184,72,.06)}.dirt-source-row{background:rgba(255,255,255,.035)}.dirt-source-row.dirt-source{background:rgba(255,166,41,.10)}.dirt-source-role{color:#aaa}.dirt-source-factor b,.node-dirt-source{color:#ffc36b}.dirt-need-ok{color:#81d7a5}.dirt-need-ng{color:#ff9a9a}}
+@media(max-width:520px){.dirt-source-row{grid-template-columns:65px 1fr}.dirt-source-factor{grid-column:2;text-align:left}}
+
+
+/* v4.3: 祖父母の育成時に必要な表示外4枠のダート赤因子 */
+.upstream-dirt-details{margin:10px 0;padding:9px 10px;border:1px solid rgba(44,116,184,.18);border-radius:12px;background:rgba(76,151,220,.055)}
+.upstream-dirt-details>summary{cursor:pointer;font-weight:800;color:#2f6da7;font-size:12px}
+.upstream-intro{margin:8px 0;font-size:11px;line-height:1.55;color:#666}
+.upstream-dirt-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:8px}
+.upstream-dirt-card{padding:10px;border:1px solid rgba(44,116,184,.18);border-radius:11px;background:rgba(255,255,255,.62)}
+.upstream-dirt-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}.upstream-dirt-head b{font-size:12px;line-height:1.45}
+.upstream-dirt-summary{font-size:11px;line-height:1.55;margin:7px 0}.upstream-dirt-summary strong{font-size:13px}
+.upstream-parent-pair,.upstream-hidden-grid{margin-top:7px;padding:7px;border-radius:9px;background:rgba(44,116,184,.045)}
+.upstream-parent-pair small,.upstream-hidden-grid small{display:block!important;margin:0 0 5px!important;font-size:10px;color:#6d7480!important}
+.upstream-visible-row,.upstream-hidden-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:4px 2px;border-bottom:1px dashed rgba(80,100,120,.12);font-size:10.5px;align-items:center}.upstream-visible-row:last-child,.upstream-hidden-row:last-child{border-bottom:0}
+.upstream-visible-row b,.upstream-hidden-row b{color:#bb6a09}.upstream-hidden-row.needed{background:rgba(255,177,45,.08);border-radius:6px;padding-left:5px;padding-right:5px}
+.upstream-note{font-size:10.5px;line-height:1.55;margin:7px 0 0;color:#666}
+.node-upstream-dirt{display:block;margin-top:4px;font-size:9.5px;font-weight:800;color:#2f6da7}
+@media (prefers-color-scheme:dark){.upstream-dirt-details{background:rgba(76,151,220,.05)}.upstream-dirt-details>summary,.node-upstream-dirt{color:#8dc7ff}.upstream-intro,.upstream-note{color:#aaa}.upstream-dirt-card{background:rgba(255,255,255,.035)}.upstream-parent-pair,.upstream-hidden-grid{background:rgba(255,255,255,.035)}.upstream-parent-pair small,.upstream-hidden-grid small{color:#aaa!important}.upstream-hidden-row.needed{background:rgba(255,177,45,.08)}}
