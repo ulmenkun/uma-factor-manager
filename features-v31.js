@@ -116,15 +116,59 @@ function trialCardScore(card){
   var score=items.reduce(function(t,x){return t+x.value},0)+high*.12+superHigh*.18;
   return{score:score,high:high,superHigh:superHigh,items:items};
 }
+function isNewTazuna(card){return card&&card.name==="駿川たづな"&&card.title==="一杯のノスタルジア"}
+function isCasinoDrive(card){return card&&card.name==="カジノドライヴ"}
+function scenarioName(id){var x=(cfg.scenarioModes||[]).find(function(s){return s.id===id});return x?x.name:id}
+function scenarioProfile(id){
+  if(id==="ramen")return{id:id,label:"トレセン軒",mandatory:isNewTazuna,minTypes:4,preferred:{"スピード":2,"賢さ":1,"友人":1}};
+  if(id==="beyond")return{id:id,label:"BEYOND DREAMS",mandatory:isCasinoDrive,minTypes:5,preferred:{"スピード":2,"友人":1}};
+  return{id:id,label:scenarioName(id),mandatory:null,minTypes:0,preferred:{}};
+}
+function addTrialCovered(card,covered){trialCardScore(card).items.forEach(function(x){if(x.value>0)covered[x.name]=true})}
+function trialMarginal(card,covered){
+  var t=trialCardScore(card),fresh=t.items.filter(function(x){return x.value>0&&!covered[x.name]}),dup=t.items.filter(function(x){return x.value>0&&covered[x.name]});
+  var value=fresh.reduce(function(a,x){return a+x.value},0)+dup.reduce(function(a,x){return a+x.value*.05},0)+fresh.length*.32;
+  return{score:value,newCount:fresh.length,dupCount:dup.length,items:fresh,all:t};
+}
+function scenarioBonus(card,scenario,typeCounts,chosenCount){
+  var p=scenarioProfile(scenario),t=normalizedType(card.type),count=(typeCounts&&typeCounts[t])||0,score=0,distinct=Object.keys(typeCounts||{}).filter(function(k){return typeCounts[k]>0}).length;
+  if(p.mandatory&&p.mandatory(card))score+=100000;
+  if(p.minTypes&&distinct<p.minTypes&&count===0)score+=scenario==="beyond"?900:360;
+  var want=Number(p.preferred[t]||0);if(want>count)score+=scenario==="beyond"?420:330;
+  if(scenario==="ramen"){
+    if(t==="スピード"&&count>=2)score-=1300;
+    if(t==="賢さ"&&count>=1)score-=320;
+    if((t==="友人"||t==="グループ")&&count>=1)score-=800;
+  }else if(scenario==="beyond"){
+    if(t==="スピード"&&count>=2)score-=700;
+    if((t==="友人"||t==="グループ")&&count>=1)score-=900;
+    if(count>0&&distinct<5)score-=650;
+  }else{
+    if(count===0)score+=90;
+  }
+  return score;
+}
+function buildTrialTop5(scenario){
+  var chosen=[],covered={},typeCounts={},profile=scenarioProfile(scenario);
+  function canUse(card){return cardAllowed(card,activePlanKey,chosen.map(function(x){return x.card.id}))&&trialCardScore(card).score>0}
+  function pick(card){if(!card||chosen.length>=5||!canUse(card))return false;var m=trialMarginal(card,covered);chosen.push({card:card,trial:m.all,marginal:m});addTrialCovered(card,covered);var t=normalizedType(card.type);typeCounts[t]=(typeCounts[t]||0)+1;return true}
+  if(profile.mandatory){var m=state.support.cards.find(profile.mandatory);if(m)pick(m)}
+  while(chosen.length<5){
+    var pool=state.support.cards.filter(canUse);if(!pool.length)break;
+    pool.sort(function(a,b){var ma=trialMarginal(a,covered),mb=trialMarginal(b,covered),sa=ma.score*120+scenarioBonus(a,scenario,typeCounts,chosen.length)+Number(a.priority||0)*.15,sb=mb.score*120+scenarioBonus(b,scenario,typeCounts,chosen.length)+Number(b.priority||0)*.15;return sb-sa||mb.newCount-ma.newCount||trialCardScore(b).score-trialCardScore(a).score||cardLabel(a).localeCompare(cardLabel(b),'ja')});
+    pick(pool[0]);
+  }
+  return chosen;
+}
 function trialRankingCards(){
-  return state.support.cards.map(function(card){return{card:card,trial:trialCardScore(card)}}).filter(function(x){return x.trial.score>0}).sort(function(a,b){return b.trial.score-a.trial.score||b.trial.high-a.trial.high||cardLabel(a.card).localeCompare(cardLabel(b.card),'ja')});
+  var p=currentPlan(),ids=Array.isArray(p.trialTop5)?p.trialTop5:[],covered={};
+  return ids.map(function(id){var card=cardById(id);if(!card)return null;var m=trialMarginal(card,covered),row={card:card,trial:m.all,marginal:m};addTrialCovered(card,covered);return row}).filter(Boolean);
 }
 function renderTrialRanking(){
-  var el=document.getElementById("trialSupportRanking");if(!el)return;var rows=trialRankingCards().slice(0,5),target=core.targetName();
-  var note=document.getElementById("trialSupportRankingNote");if(note)note.textContent="「"+target+"」の適性補正を反映。逃げG・短距離Gは評価点-30%。現在の家系図G1でレース因子から狙えるスキルは自動減点。";
-  el.innerHTML=rows.map(function(x,i){var c=x.card,t=x.trial,top=t.items.filter(function(y){return y.value>0}).slice(0,7);return'<div class="trial-rank-card"><div class="trial-rank-head"><span class="trial-rank-no">'+(i+1)+'</span><span class="rarity-badge '+String(c.rarity||'').toLowerCase()+'">'+esc(c.rarity||'SSR')+'</span><span class="support-type">'+esc(normalizedType(c.type))+'</span><b>'+esc(c.name)+'</b><small>'+esc(c.title||'')+'</small><strong>総合 '+t.score.toFixed(1)+'</strong></div><div class="trial-rank-meta">高効率 '+t.high+'個'+(t.superHigh?' ／ 7.0以上 '+t.superHigh+'個':'')+'</div><div class="trial-rank-skills">'+top.map(function(y){var down=y.raceCount?'<em>レース因子×'+y.raceCount+'で減点</em>':'',apt=y.aptitudeMultiplier<1?'<em>適性×'+y.aptitudeMultiplier.toFixed(1)+'</em>':'';return'<span><b>'+esc(y.name)+'</b> '+y.eff.toFixed(2)+down+apt+'</span>'}).join('')+'</div></div>'}).join('')||'<div class="loading-note">ランキング対象のスキルデータがありません。</div>';
+  var el=document.getElementById("trialSupportRanking");if(!el)return;var p=currentPlan(),rows=trialRankingCards(),target=core.targetName(),scenario=scenarioName(p.scenario),note=document.getElementById("trialSupportRankingNote");
+  if(note)note.textContent=rows.length?"「"+target+"」＋「"+scenario+"」で再計算済み。カード間で同じ高効率スキルが重なるほど価値を下げ、5枚全体で取れる種類数を優先。レース因子で狙いやすいスキルも減点。":"育成シナリオを選んで「自動編成」を押すと、重複を避けたTOP5を更新します。";
+  el.innerHTML=rows.map(function(x,i){var c=x.card,t=x.trial,m=x.marginal,top=t.items.filter(function(y){return y.value>0}).slice(0,8);return'<div class="trial-rank-card"><div class="trial-rank-head"><span class="trial-rank-no">'+(i+1)+'</span><span class="rarity-badge '+String(c.rarity||'').toLowerCase()+'">'+esc(c.rarity||'SSR')+'</span><span class="support-type">'+esc(normalizedType(c.type))+'</span><b>'+esc(c.name)+'</b><small>'+esc(c.title||'')+'</small><strong>新規 '+m.newCount+'種</strong></div><div class="trial-rank-meta">高効率 '+t.high+'個'+(t.superHigh?' ／ 7.0以上 '+t.superHigh+'個':'')+(m.dupCount?' ／ 他カードと重複 '+m.dupCount+'個':' ／ 重複なし')+'</div><div class="trial-rank-skills">'+top.map(function(y){var down=y.raceCount?'<em>レース因子×'+y.raceCount+'で減点</em>':'',apt=y.aptitudeMultiplier<1?'<em>適性×'+y.aptitudeMultiplier.toFixed(1)+'</em>':'',dup=(i>0&&!m.items.some(function(z){return z.name===y.name}))?'<em>重複</em>':'';return'<span><b>'+esc(y.name)+'</b> '+y.eff.toFixed(2)+down+apt+dup+'</span>'}).join('')+'</div></div>'}).join('')||'<div class="loading-note">「自動編成」を押すとTOP5を作成します。</div>';
 }
-function isNewTazuna(card){return card&&card.name==="駿川たづな"&&card.title==="一杯のノスタルジア"}
 function cardAllowed(card,key,chosen){
   if(!card)return false;
   var uma=plainUmaName(selectedUmaForPlan(key));if(uma&&uma!=="未選択"&&(uma===card.name||uma.indexOf(card.name)>=0))return false;
@@ -134,55 +178,52 @@ function cardAllowed(card,key,chosen){
 function cardScore(card,covered,key,chosen,typeCounts){
   var needed=planNeededNames(key),score=Number(card.priority||0),newHits=0,total=0;
   needed.forEach(function(n){var w=skillSourceWeight(card,n);if(w){total++;var s=skillData(n),m=s?core.skillMetrics(s):null;if(!covered[n]){newHits++;score+=300+w*8+(m&&m.efficiency?m.efficiency*25*raceFactorDiscount(n):0)}else score+=8}});
-  score+=newHits*newHits*55+total*10+trialCardScore(card).score*18;
+  score+=newHits*newHits*55+total*10+trialCardScore(card).score*5;
   var t=normalizedType(card.type),count=(typeCounts&&typeCounts[t])||0;if(count===0)score+=35;else if(count>=2)score-=80*count;
-  var scenario=ensurePlan(key).scenario;if(scenario==="ramen"&&isNewTazuna(card))score+=100000;
+  var scenario=ensurePlan(key).scenario;score+=scenarioBonus(card,scenario,typeCounts||{},(chosen||[]).length);
   if((card.tags||[]).some(function(x){return /因子周回|最新強|高効率/.test(x)}))score+=20;
   if(card.dataQuality==="metadata-only")score-=45;
   return score;
 }
 function addCovered(card,covered){allCardSkills(card).forEach(function(n){covered[n]=true})}
 function autoDeck(){
-  var p=currentPlan(),chosen=[],covered={},typeCounts={};
-  var mandatory=state.support.cards.find(isNewTazuna);
+  var p=currentPlan(),chosen=[],covered={},trialCovered={},typeCounts={},profile=scenarioProfile(p.scenario),mandatory=profile.mandatory?state.support.cards.find(profile.mandatory):null,reservedMandatory=mandatory&&!mandatory.owned;
+  if(reservedMandatory){addCovered(mandatory,covered);addTrialCovered(mandatory,trialCovered);typeCounts[normalizedType(mandatory.type)]=1}
   function choose(card){
     if(!card||chosen.length>=5)return false;
+    if(reservedMandatory&&card.name===mandatory.name)return false;
     if(!cardAllowed(card,activePlanKey,chosen))return false;
-    chosen.push(card.id);addCovered(card,covered);
+    chosen.push(card.id);addCovered(card,covered);addTrialCovered(card,trialCovered);
     var t=normalizedType(card.type);typeCounts[t]=(typeCounts[t]||0)+1;return true;
   }
   function adjustedScore(card){
-    var score=cardScore(card,covered,activePlanKey,chosen,typeCounts),t=normalizedType(card.type),count=typeCounts[t]||0;
-    if(p.scenario==="ramen"){
-      /* ラーメンは新たづな＋スピード2＋賢さ1を基本形にし、残りは必要スキルとタイプ分散で決める。 */
-      if(count===0)score+=220;
-      if(t==="スピード"&&count>=2)score-=1200;
-      if(t==="賢さ"&&count>=1)score-=260;
-      if((t==="友人"||t==="グループ")&&count>=1)score-=700;
-    }
+    var score=cardScore(card,covered,activePlanKey,chosen,typeCounts),m=trialMarginal(card,trialCovered);
+    /* 1枚単体の総量より、今の編成にまだ無い高効率スキルを何種類増やせるかを優先。 */
+    score+=m.score*125+m.newCount*38-m.dupCount*7;
     return score;
   }
   function bestOwnedOfType(type){
-    var pool=state.support.cards.filter(function(c){return c.owned&&normalizedType(c.type)===type&&cardAllowed(c,activePlanKey,chosen)});
+    var pool=state.support.cards.filter(function(c){return c.owned&&(!reservedMandatory||c.name!==mandatory.name)&&normalizedType(c.type)===type&&cardAllowed(c,activePlanKey,chosen)});
     pool.sort(function(a,b){return adjustedScore(b)-adjustedScore(a)});return pool[0]||null;
   }
-  if(p.scenario==="ramen"&&mandatory&&mandatory.owned)choose(mandatory);
+  if(mandatory&&mandatory.owned)choose(mandatory);
   if(p.scenario==="ramen"){
     ["スピード","スピード","賢さ"].forEach(function(t){choose(bestOwnedOfType(t))});
   }
   while(chosen.length<5){
-    var pool=state.support.cards.filter(function(c){return c.owned&&cardAllowed(c,activePlanKey,chosen)});
+    var pool=state.support.cards.filter(function(c){return c.owned&&(!reservedMandatory||c.name!==mandatory.name)&&cardAllowed(c,activePlanKey,chosen)});
     if(!pool.length)break;
     pool.sort(function(a,b){return adjustedScore(b)-adjustedScore(a)});choose(pool[0]);
   }
   var friend=null;
-  if(p.scenario==="ramen"&&mandatory&&!mandatory.owned&&cardAllowed(mandatory,activePlanKey,chosen))friend=mandatory;
+  if(mandatory&&!mandatory.owned&&cardAllowed(mandatory,activePlanKey,chosen))friend=mandatory;
   if(!friend){
     var fp=state.support.cards.filter(function(c){return!c.owned&&cardAllowed(c,activePlanKey,chosen)});
     fp.sort(function(a,b){return adjustedScore(b)-adjustedScore(a)});friend=fp[0]||null;
   }
   p.deck=chosen.concat([friend?friend.id:null]);while(p.deck.length<6)p.deck.push(null);p.deck=p.deck.slice(0,6);
-  core.save();renderSupport();core.toast("このウマ娘の必要スキルとシナリオに合わせて編成しました");
+  var top5=buildTrialTop5(p.scenario);p.trialTop5=top5.map(function(x){return x.card.id});p.trialTop5Scenario=p.scenario;p.trialTop5Updated=new Date().toISOString();
+  core.save();renderSupport();core.toast("スキル重複を避け、選択シナリオに合わせて編成しました");
 }
 function setDeckSlot(index,id){
   var p=currentPlan(),card=cardById(id);if(card){p.deck=p.deck.map(function(x,i){var c=cardById(x);return i!==index&&c&&c.name===card.name?null:x})}p.deck[index]=id||null;core.save();renderSupport();
@@ -275,7 +316,7 @@ function openTarget(){document.getElementById("targetBuildTitle").textContent=co
 function closeTarget(){document.getElementById("targetBuildSheet").classList.add("hidden")}
 function bind(){
   var plan=document.getElementById("supportPlanTarget");if(plan)plan.onchange=function(){activePlanKey=this.value;var p=currentPlan();state.scenarioMode=p.scenario;core.save();renderSupport();core.renderSchedule();core.renderTree()};
-  var scenario=document.getElementById("scenarioMode");if(scenario)scenario.onchange=function(){var p=currentPlan();p.scenario=this.value;state.scenarioMode=this.value;core.save();renderSupport();core.renderSchedule();core.renderTree()};
+  var scenario=document.getElementById("scenarioMode");if(scenario)scenario.onchange=function(){var p=currentPlan();p.scenario=this.value;p.trialTop5=[];p.trialTop5Scenario=null;state.scenarioMode=this.value;core.save();renderSupport();core.renderSchedule();core.renderTree()};
   var auto=document.getElementById("autoSupportDeckBtn");if(auto)auto.onclick=autoDeck;
   var add=document.getElementById("addSupportCardBtn");if(add)add.onclick=addSupport;
   var restore=document.getElementById("restoreSupportDataBtn");if(restore)restore.onclick=restoreLibrary;
@@ -295,6 +336,6 @@ function bind(){
 }
 
 window.addEventListener("uma-state-saved",function(){clearTimeout(renderTrialRanking.t);renderTrialRanking.t=setTimeout(renderTrialRanking,30)});
-window.UmaSupportV44={renderSupport:renderSupport,renderTrialRanking:renderTrialRanking,trialRankingCards:trialRankingCards};
+window.UmaSupportV44={renderSupport:renderSupport,renderTrialRanking:renderTrialRanking,trialRankingCards:trialRankingCards,buildTrialTop5:buildTrialTop5};
 ensureV31();renderSupport();bind();
 })();
