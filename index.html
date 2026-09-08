@@ -57,9 +57,8 @@
       <div><small>最終開始時</small><strong id="finalAptitude">-</strong></div>
     </div>
     <div id="familyTree" class="family-tree"><div class="loading-note">家系図を読み込み中…</div></div>
-    <details class="red-plan-toggle">
+    <details id="redPlanToggle" class="red-plan-toggle">
       <summary>赤因子・相性ローテの詳細を見る</summary>
-      <p class="red-plan-auto-note">ダートG1ローテと必要な赤因子は、チェック操作なしで常におすすめ設計へ反映します。</p>
       <div id="redFactorPlanSummary" class="red-factor-plan-summary"></div>
       <div id="g1StageSummary" class="g1-stage-summary"></div>
     </details>
@@ -81,6 +80,11 @@
     <div id="supportPlanInfo" class="support-plan-info"></div>
     <div class="scenario-control support-scenario"><div id="finalG1Summary" class="final-g1-summary"></div></div>
     <div id="supportCoverageSummary" class="selection-summary"></div>
+    <section class="trial-support-ranking-box">
+      <div class="trial-support-ranking-title"><div><small>技能試験・白スキル重視</small><h3>クリスエス向けサポカ総合TOP5</h3></div><span>適性＋レース因子重複を考慮</span></div>
+      <p id="trialSupportRankingNote" class="hint"></p>
+      <div id="trialSupportRanking" class="trial-support-ranking"></div>
+    </section>
     <div id="supportDeck" class="support-deck"></div>
     <details class="support-editor">
       <summary>所持サポカを選択・実データを確認</summary>
@@ -185,6 +189,10 @@
         <span>赤因子★</span>
         <div id="sheetStarButtons" class="star-buttons"></div>
       </div>
+      <div class="candidate-search-wrap">
+        <input id="candidateAllSearch" class="search-input" type="search" placeholder="全ウマ娘から名前検索（フレンド親も可）">
+        <small>未収録のウマ娘も名前で手動選択できます。適性・相性が未登録の場合は自動おすすめ計算の対象外です。</small>
+      </div>
       <div id="candidateList" class="candidate-list"></div>
     </section>
 
@@ -279,13 +287,13 @@
 </div>
 <div id="toast" class="toast hidden"></div>
 
-<script src="data.js?v=44r2"></script>
-<script src="support-data-v31.js?v=44r2"></script>
-<script src="data/latest-data-pack.js?v=44r2"></script>
-<script src="data-update-bootstrap.js?v=44r2"></script>
-<script src="app.js?v=44r2"></script>
-<script src="features-v31.js?v=44r2"></script>
-<script src="data-updater-ui.js?v=44r2"></script>
-<script src="visitor-stats.js?v=44r2"></script>
+<script src="data.js?v=44r5"></script>
+<script src="support-data-v31.js?v=44r5"></script>
+<script src="data/latest-data-pack.js?v=44r5"></script>
+<script src="data-update-bootstrap.js?v=44r5"></script>
+<script src="app.js?v=44r5"></script>
+<script src="features-v31.js?v=44r5"></script>
+<script src="data-updater-ui.js?v=44r5"></script>
+<script src="visitor-stats.js?v=44r5"></script>
 </body>
 </html>

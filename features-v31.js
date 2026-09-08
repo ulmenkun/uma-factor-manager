@@ -93,6 +93,37 @@ function factorSkills(card){
 }
 function allCardSkills(card){return unique([].concat(card.hintSkills||[],card.eventSkills||[],card.skills||[],card.goldSkills||[],card.customSkills||[]))}
 function skillSourceWeight(card,name){if((card.hintSkills||[]).indexOf(name)>=0)return 14;if((card.eventSkills||[]).indexOf(name)>=0)return 10;if((card.goldSkills||[]).indexOf(name)>=0)return 11;if((card.skills||[]).indexOf(name)>=0)return 8;return 0}
+function raceEffectHasSkill(r,name){
+  return String(r&&r.factorEffect||"").split(/[＋+、,／/]/).map(normSkill).indexOf(normSkill(name))>=0;
+}
+function raceFactorSourceCount(name){
+  var count=0;
+  ["mile","chase"].forEach(function(b){var plan=(state.branches[b]&&state.branches[b].races)||{};(cfg.races||[]).forEach(function(r){if(plan[r.id]&&raceEffectHasSkill(r,name))count++})});
+  return count;
+}
+function raceFactorDiscount(name){var c=raceFactorSourceCount(name);return c<=0?1:(c===1?.65:(c===2?.45:.35))}
+function sourceKind(card,name){if((card.hintSkills||[]).indexOf(name)>=0)return"hint";if((card.eventSkills||[]).indexOf(name)>=0)return"event";if((card.skills||[]).indexOf(name)>=0)return"other";return"other"}
+function trialSkillValue(card,name){
+  var s=skillData(name);if(!s||s.factorEligible===false||s.grade==="gold"||s.grade==="evolved")return null;
+  var m=core.skillMetrics(s,0);if(!m||m.efficiency==null)return null;
+  var kind=sourceKind(card,name),sourceWeight=kind==="hint"?1:(kind==="event"?.62:.72),raceCount=raceFactorSourceCount(name),raceDisc=raceFactorDiscount(name),raw=Math.max(0,m.efficiency-3.5);
+  if(m.efficiency>=7)raw*=1.35;else if(m.efficiency>=5.5)raw*=1.15;
+  return{name:name,eff:m.efficiency,value:raw*sourceWeight*raceDisc,kind:kind,raceCount:raceCount,raceDisc:raceDisc,aptitudeMultiplier:m.multiplier||1,cost:m.cost};
+}
+function trialCardScore(card){
+  var by={};allCardSkills(card).forEach(function(n){var x=trialSkillValue(card,n);if(!x)return;var old=by[n];if(!old||x.value>old.value)by[n]=x});
+  var items=Object.keys(by).map(function(n){return by[n]}).sort(function(a,b){return b.value-a.value||b.eff-a.eff}),high=items.filter(function(x){return x.eff>=5.5}).length,superHigh=items.filter(function(x){return x.eff>=7}).length;
+  var score=items.reduce(function(t,x){return t+x.value},0)+high*.12+superHigh*.18;
+  return{score:score,high:high,superHigh:superHigh,items:items};
+}
+function trialRankingCards(){
+  return state.support.cards.map(function(card){return{card:card,trial:trialCardScore(card)}}).filter(function(x){return x.trial.score>0}).sort(function(a,b){return b.trial.score-a.trial.score||b.trial.high-a.trial.high||cardLabel(a.card).localeCompare(cardLabel(b.card),'ja')});
+}
+function renderTrialRanking(){
+  var el=document.getElementById("trialSupportRanking");if(!el)return;var rows=trialRankingCards().slice(0,5),target=core.targetName();
+  var note=document.getElementById("trialSupportRankingNote");if(note)note.textContent="「"+target+"」の適性補正を反映。逃げG・短距離Gは評価点-30%。現在の家系図G1でレース因子から狙えるスキルは自動減点。";
+  el.innerHTML=rows.map(function(x,i){var c=x.card,t=x.trial,top=t.items.filter(function(y){return y.value>0}).slice(0,7);return'<div class="trial-rank-card"><div class="trial-rank-head"><span class="trial-rank-no">'+(i+1)+'</span><span class="rarity-badge '+String(c.rarity||'').toLowerCase()+'">'+esc(c.rarity||'SSR')+'</span><span class="support-type">'+esc(normalizedType(c.type))+'</span><b>'+esc(c.name)+'</b><small>'+esc(c.title||'')+'</small><strong>総合 '+t.score.toFixed(1)+'</strong></div><div class="trial-rank-meta">高効率 '+t.high+'個'+(t.superHigh?' ／ 7.0以上 '+t.superHigh+'個':'')+'</div><div class="trial-rank-skills">'+top.map(function(y){var down=y.raceCount?'<em>レース因子×'+y.raceCount+'で減点</em>':'',apt=y.aptitudeMultiplier<1?'<em>適性×'+y.aptitudeMultiplier.toFixed(1)+'</em>':'';return'<span><b>'+esc(y.name)+'</b> '+y.eff.toFixed(2)+down+apt+'</span>'}).join('')+'</div></div>'}).join('')||'<div class="loading-note">ランキング対象のスキルデータがありません。</div>';
+}
 function isNewTazuna(card){return card&&card.name==="駿川たづな"&&card.title==="一杯のノスタルジア"}
 function cardAllowed(card,key,chosen){
   if(!card)return false;
@@ -102,8 +133,8 @@ function cardAllowed(card,key,chosen){
 }
 function cardScore(card,covered,key,chosen,typeCounts){
   var needed=planNeededNames(key),score=Number(card.priority||0),newHits=0,total=0;
-  needed.forEach(function(n){var w=skillSourceWeight(card,n);if(w){total++;var s=skillData(n),m=s?core.skillMetrics(s):null;if(!covered[n]){newHits++;score+=300+w*8+(m&&m.efficiency?m.efficiency*25:0)}else score+=8}});
-  score+=newHits*newHits*55+total*10;
+  needed.forEach(function(n){var w=skillSourceWeight(card,n);if(w){total++;var s=skillData(n),m=s?core.skillMetrics(s):null;if(!covered[n]){newHits++;score+=300+w*8+(m&&m.efficiency?m.efficiency*25*raceFactorDiscount(n):0)}else score+=8}});
+  score+=newHits*newHits*55+total*10+trialCardScore(card).score*18;
   var t=normalizedType(card.type),count=(typeCounts&&typeCounts[t])||0;if(count===0)score+=35;else if(count>=2)score-=80*count;
   var scenario=ensurePlan(key).scenario;if(scenario==="ramen"&&isNewTazuna(card))score+=100000;
   if((card.tags||[]).some(function(x){return /因子周回|最新強|高効率/.test(x)}))score+=20;
@@ -193,7 +224,7 @@ function bindCatalog(){
   document.querySelectorAll("[data-delete-support]").forEach(function(e){e.onclick=function(){var id=e.dataset.deleteSupport;state.support.cards=state.support.cards.filter(function(c){return c.id!==id});Object.keys(state.support.plans).forEach(function(k){state.support.plans[k].deck=state.support.plans[k].deck.map(function(x){return x===id?null:x})});core.save();renderSupport()}});
 }
 function renderSupport(){
-  renderPlanTarget();renderScenario();var cv=deckCoverage(),info=document.getElementById("supportPlanInfo");if(info)info.innerHTML='<b>'+esc(planLabel(activePlanKey))+'</b><span>必要スキル '+cv.needed.length+'個・シナリオ別に編成を保存</span>';
+  renderPlanTarget();renderScenario();renderTrialRanking();var cv=deckCoverage(),info=document.getElementById("supportPlanInfo");if(info)info.innerHTML='<b>'+esc(planLabel(activePlanKey))+'</b><span>必要スキル '+cv.needed.length+'個・シナリオ別に編成を保存</span>';
   var sum=document.getElementById("supportCoverageSummary");if(sum)sum.innerHTML='<b>必要スキル '+cv.needed.length+'個中 '+cv.hit.length+'個をカバー</b><span class="support-data-stamp">SSR '+state.support.cards.filter(function(c){return c.rarity==='SSR'}).length+'／SR '+state.support.cards.filter(function(c){return c.rarity==='SR'}).length+'・'+esc(DATA_VERSION)+'</span>'+(cv.miss.length?'<br>未対応：'+cv.miss.slice(0,14).map(esc).join('、')+(cv.miss.length>14?' ほか':''):'<br>選択中の必要スキルをすべてカバー');
   renderDeck();renderCatalog();
 }
@@ -263,5 +294,7 @@ function bind(){
   document.getElementById("targetSkillSearch").oninput=renderTargetSkills;document.getElementById("autoAllocateSkillsBtn").onclick=autoAllocate;document.getElementById("clearTargetSkillsBtn").onclick=function(){Object.keys(state.targetBuild.skills).forEach(function(n){state.targetBuild.skills[n].selected=false});core.save();renderTargetSkills();renderTargetTotals();renderSupport()};
 }
 
+window.addEventListener("uma-state-saved",function(){clearTimeout(renderTrialRanking.t);renderTrialRanking.t=setTimeout(renderTrialRanking,30)});
+window.UmaSupportV44={renderSupport:renderSupport,renderTrialRanking:renderTrialRanking,trialRankingCards:trialRankingCards};
 ensureV31();renderSupport();bind();
 })();
