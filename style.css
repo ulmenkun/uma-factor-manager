@@ -411,7 +411,12 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .manual-candidate{border-style:dashed!important}
 .manual-candidate .candidate-score{background:#f3f4f6;color:#4b5563}
 
-.trial-support-ranking-box{margin:14px 0;padding:12px;border:1px solid #dfe5ee;border-radius:14px;background:#fbfcfe}
+.trial-support-ranking-box{margin:14px 0;border:1px solid #dfe5ee;border-radius:14px;background:#fbfcfe;overflow:hidden}
+.trial-support-ranking-box>summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:13px;font-weight:800;color:#334155;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.trial-support-ranking-box>summary::-webkit-details-marker{display:none}
+.trial-support-ranking-box>summary:after{content:"見る";font-size:10px;font-weight:700;color:#5748d8;background:#eeecff;border-radius:999px;padding:4px 8px}
+.trial-support-ranking-box[open]>summary:after{content:"閉じる"}
+.trial-support-ranking-body{padding:0 12px 12px}
 .trial-support-ranking-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
 .trial-support-ranking-title small{display:block;color:#6b7280;font-size:10px;font-weight:700}
 .trial-support-ranking-title h3{font-size:15px;line-height:1.3;margin:2px 0 0}
@@ -439,3 +444,16 @@ select,input[type=text],input[type=search]{width:100%;border:1px solid #ccd1da;b
 .direct-parent-rec-plus{font-weight:800;color:#777}.direct-parent-rec-metrics{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.direct-parent-rec-metrics span{font-size:12px;background:#f4f6f8;border-radius:999px;padding:4px 7px}
 .direct-parent-rec-note{margin:8px 0 0;font-size:12px;line-height:1.55;color:#555}.direct-parent-rec-warn{color:#9b5b00;font-weight:700}.direct-parent-rec-alt{margin-top:7px;font-size:11px;color:#777}
 @media(max-width:560px){.direct-parent-rec-pair{grid-template-columns:1fr}.direct-parent-rec-plus{text-align:center;line-height:1}.direct-parent-rec-head{display:block}.direct-parent-rec-badge{display:inline-block;margin-top:6px}}
+
+/* Ver.4.4 r11: 継承進化最優先＋距離Cローテ＋相性/G1総合比較 */
+.recommendation-reason-toggle{margin-top:9px;border:1px solid rgba(25,118,210,.18);border-radius:12px;background:rgba(25,118,210,.035);overflow:hidden}
+.recommendation-reason-toggle>summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:12px;font-weight:900;color:#245f9c;background:rgba(25,118,210,.045)}
+.recommendation-reason-toggle>summary::-webkit-details-marker{display:none}.recommendation-reason-toggle>summary:after{content:"＋";float:right;font-size:16px;line-height:1}.recommendation-reason-toggle[open]>summary:after{content:"−"}
+.recommendation-reason-toggle .direct-parent-recommendation{margin:10px;border-color:rgba(25,118,210,.18)}
+.family-recommendation-reason{margin:0 10px 10px;display:grid;gap:7px}.recommendation-reason-title{padding:8px 2px}.recommendation-reason-title b{display:block;font-size:13px}.recommendation-reason-title small{display:block;color:var(--muted);margin-top:2px}
+.recommendation-reason-row{border:1px solid #e2e7ee;border-radius:10px;padding:9px;background:var(--card,#fff)}.recommendation-reason-row>div:first-child b{display:block;font-size:12px}.recommendation-reason-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.recommendation-reason-metrics{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.recommendation-reason-metrics span,.recommendation-reason-metrics strong{font-size:10px;padding:3px 6px;border-radius:999px;background:#f0f3f7}.recommendation-reason-metrics strong{background:#eaf4ff;color:#245f9c}
+@media(prefers-color-scheme:dark){.recommendation-reason-toggle>summary{background:rgba(255,255,255,.035)}.recommendation-reason-row{border-color:#3b414b}.recommendation-reason-metrics span,.recommendation-reason-metrics strong{background:#303640}}
+.direct-parent-rec-excluded{margin-top:8px;border-top:1px dashed #d7dce3;padding-top:7px}.direct-parent-rec-excluded>summary{cursor:pointer;font-size:11px;font-weight:800;color:#6d7480}.direct-parent-rec-excluded>div{font-size:11px;line-height:1.5;color:#666;margin-top:4px}
+/* Ver.4.4 r11: 継承アップ前提の注意表示 */
+.dirt-need-warn{color:#8b5a00;background:#fff0cf;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:900}
+.red-plan-checks .mid{background:#fff0cf;color:#8b5a00;border-color:#ead18b}
